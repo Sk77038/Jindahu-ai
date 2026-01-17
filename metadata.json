@@ -1,0 +1,9 @@
+{
+  "name": "ZindaHu AI - Daily Safety & Alive Confirmation",
+  "description": "A production-grade safety application that confirms a user's status daily. It automatically alerts emergency contacts with location data if the user fails to check in within their scheduled window.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera",
+    "microphone"
+  ]
+}
