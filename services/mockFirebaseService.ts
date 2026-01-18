@@ -5,12 +5,23 @@ const STORAGE_KEY = 'zindahu_user_data';
 
 export const mockFirebase = {
   saveUser: (user: UserProfile) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    } catch (e) {
+      console.error("Failed to save to localStorage", e);
+    }
   },
   
   getUser: (): UserProfile | null => {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : null;
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (!data) return null;
+      return JSON.parse(data);
+    } catch (e) {
+      console.error("Failed to parse user data, clearing storage", e);
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
   },
 
   updateLastCheckIn: (timestamp: number) => {
@@ -23,10 +34,7 @@ export const mockFirebase = {
 
   triggerEmergencyMode: async (user: UserProfile) => {
     console.log("FIREBASE CLOUD FUNCTION SIMULATION: EMERGENCY TRIGGERED");
-    // In a real app, this calls a Node.js Cloud Function that:
-    // 1. Fetches current location via FCM background trigger
-    // 2. Sends SMS via Twilio/Msg91
-    // 3. Sends Push Notifications to EmergencyContact list
+    // Implementation for production: Twilio/FCM logic
     return true;
   }
 };
