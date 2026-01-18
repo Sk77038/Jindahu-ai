@@ -21,10 +21,14 @@ export interface UserProfile {
   name: string;
   age?: string;
   phone: string;
-  checkInHour: number; // 0-23
-  lastCheckIn: number; // timestamp
+  checkInHour: number; 
+  lastCheckIn: number; 
   contacts: EmergencyContact[];
   language: Language;
+  // Life Clock Features
+  registrationDate: number;
+  initialSoulAge: string;
+  predictedDays: number; // Total fun "predicted" days
 }
 
 export interface LocationData {

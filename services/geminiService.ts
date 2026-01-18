@@ -1,46 +1,56 @@
-import { GoogleGenAI } from "@google/genai";
+
+import { GoogleGenAI, Type } from "@google/genai";
 import { UserProfile } from '../types';
 
-// Use a getter to initialize the client only when needed.
-// This prevents top-level execution errors if the API key is missing.
 const getAIClient = () => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    console.warn("API_KEY is not defined in process.env");
-    return null;
-  }
+  if (!apiKey) return null;
   return new GoogleGenAI({ apiKey });
 };
+
+export async function getSoulAnalysis(name: string, language: string) {
+  try {
+    const ai = getAIClient();
+    if (!ai) return { soulAge: "Immortal", reading: "Aura is cryptic.", predictedDays: 30000 };
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `User ${name} is registering for ZindaHu AI.
+      1. Invent a funny "Soul Age" (e.g., 'Born during Big Bang', 'Younger than WiFi').
+      2. Predict a random "Life Duration in Days" for fun (between 25000 and 40000).
+      3. A short personality reading.
+      Language: ${language === 'hi' ? 'Hindi' : 'English'}.
+      Return JSON: { "soulAge": string, "predictedDays": number, "reading": string }`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            soulAge: { type: Type.STRING },
+            predictedDays: { type: Type.NUMBER },
+            reading: { type: Type.STRING }
+          },
+          required: ["soulAge", "predictedDays", "reading"]
+        }
+      }
+    });
+
+    return JSON.parse(response.text || "{}");
+  } catch (error) {
+    return { soulAge: "Eternal", predictedDays: 36500, reading: "You are a cosmic phenomenon." };
+  }
+}
 
 export async function getSafetyInsight(user: UserProfile) {
   try {
     const ai = getAIClient();
-    if (!ai) return "You are protected.";
-
+    if (!ai) return "Stay vigilant.";
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `User ${user.name} checked in at ${new Date(user.lastCheckIn).toLocaleTimeString()}. Their target daily check-in is ${user.checkInHour}:00. Generate a very short, encouraging 1-sentence safety tip or a reassuring message in ${user.language === 'hi' ? 'Hindi' : 'English'}.`,
+      contents: `User ${user.name} checked in. Their soul age is ${user.initialSoulAge}. Give a short, quirky 1-sentence motivational safety tip.`,
     });
-    return response.text || "You are protected.";
+    return response.text || "Stay safe.";
   } catch (error) {
-    console.error("Gemini Error:", error);
     return "Your safety is our priority.";
-  }
-}
-
-export async function generateEmergencyMessage(user: UserProfile, location?: string) {
-  try {
-    const ai = getAIClient();
-    if (!ai) return `EMERGENCY ALERT: ${user.name} missed their check-in.`;
-
-    const prompt = `URGENT: User ${user.name} missed their safety check-in. Emergency contacts: ${user.contacts.map(c => c.name).join(', ')}. Location: ${location || 'Unknown'}. Create a concise, clear emergency SMS alert text to be sent to family members in ${user.language === 'hi' ? 'Hindi' : 'English'}. Include the urgency but stay calm.`;
-    
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-    });
-    return response.text;
-  } catch (error) {
-    return `EMERGENCY ALERT: ${user.name} missed their check-in. Please check on them immediately. Last known: ${location || 'Unknown'}.`;
   }
 }
