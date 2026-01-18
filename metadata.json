@@ -1,6 +1,6 @@
 {
-  "name": "ZindaHu AI - Daily Safety & Alive Confirmation",
-  "description": "A production-grade safety application that confirms a user's status daily. It automatically alerts emergency contacts with location data if the user fails to check in within their scheduled window.",
+  "name": "ZindaHu AI - Real-time Safety Shield",
+  "description": "Production-grade safety app with real-time Firebase synchronization and emergency GPS tracking.",
   "requestFramePermissions": [
     "geolocation",
     "camera",
