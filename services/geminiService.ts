@@ -55,16 +55,24 @@ export async function getSafetyInsight(user: UserProfile) {
   }
 }
 
+/**
+ * Generates an emergency reassurance message.
+ * Prompt refined to indicate help is being mobilized.
+ */
 export async function getEmergencyReassurance(language: string) {
   try {
     const ai = getAIClient();
-    if (!ai) return "Help is on the way.";
+    if (!ai) return "Help is on the way. Please stay calm.";
+    
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `User is in an emergency state. Provide one extremely short, calming, and reassuring sentence. Language: ${language}.`,
+      contents: `The user has triggered a PANIC state. 
+      Provide exactly one short, extremely calming, and reassuring sentence. 
+      It MUST indicate that help is being mobilized and emphasize that they should stay calm.
+      Language: ${language === 'hi' ? 'Hindi' : 'English'}.`,
     });
-    return response.text || "Breathe. Help is starting to mobilize.";
+    return response.text?.trim() || "Breathe. Help is starting to mobilize.";
   } catch (error) {
-    return "Help is on the way. Stay calm.";
+    return language === 'hi' ? "मदद आ रही है। कृपया शांत रहें।" : "Help is on the way. Please stay calm.";
   }
 }

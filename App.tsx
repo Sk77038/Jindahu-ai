@@ -31,6 +31,13 @@ export default function App() {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [showMorningForce, setShowMorningForce] = useState(false);
   const [showContactsModal, setShowContactsModal] = useState(false);
+  
+  // Navigation & Preferences States
+  const [showMenu, setShowMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [hapticsEnabled, setHapticsEnabled] = useState(true);
 
   // Setup/Registration State
   const [regStep, setRegStep] = useState(1);
@@ -47,7 +54,13 @@ export default function App() {
   const batteryLevel = useBattery();
   const t = TRANSLATIONS[language];
 
-  // Logic to determine if check-in is due (Past 9 AM and not done today)
+  // Helper for vibrations with toggle check
+  const vibrate = (pattern: number | number[]) => {
+    if (hapticsEnabled && 'vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  };
+
   const isCheckInDue = useMemo(() => {
     if (!user) return false;
     const now = new Date();
@@ -56,7 +69,6 @@ export default function App() {
     return now.getHours() >= 9 && !isToday;
   }, [user]);
 
-  // Effect to update time remaining until next 9 AM window
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
@@ -83,7 +95,6 @@ export default function App() {
     setIsAppLoaded(true);
   }, [isCheckInDue]);
 
-  // Life Clock Calculations
   const life = useMemo(() => {
     if (!user) return { elapsed: 0, remaining: 0, percent: 0 };
     const dayMs = 1000 * 60 * 60 * 24;
@@ -96,7 +107,7 @@ export default function App() {
 
   const handleCheckIn = async () => {
     if (!user) return;
-    if ('vibrate' in navigator) navigator.vibrate(60);
+    vibrate(60);
     setIsSyncing(true);
     
     const now = Date.now();
@@ -116,22 +127,25 @@ export default function App() {
     setIsSyncing(false);
     setStatus(SafetyStatus.SAFE);
     setShowMorningForce(false);
-    if ('vibrate' in navigator) navigator.vibrate([20, 100]);
+    vibrate([20, 100]);
   };
 
   const handlePanicInitiation = async () => {
-    if ('vibrate' in navigator) navigator.vibrate(80);
-    setAiReassurance(""); // Reset
+    vibrate(80);
+    setAiReassurance(""); 
     setShowPanicConfirm(true);
     
-    // Fetch calming Gemini reassurance while modal is open
-    const message = await getEmergencyReassurance(language);
-    setAiReassurance(message);
+    try {
+      const message = await getEmergencyReassurance(language);
+      setAiReassurance(message);
+    } catch (e) {
+      setAiReassurance(language === 'hi' ? 'मदद के लिए तैयारी शुरू हो गई है। शांत रहें।' : 'Help is starting to mobilize. Please stay calm.');
+    }
   };
 
   const handlePanicConfirm = async () => {
     if (!user) return;
-    if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 500]);
+    vibrate([200, 100, 200, 100, 500]);
     setStatus(SafetyStatus.EMERGENCY);
     
     let loc = null;
@@ -161,7 +175,7 @@ export default function App() {
     }
     const primary = user.contacts[0];
     const cleanPhone = primary.phone.replace(/\s/g, '');
-    if ('vibrate' in navigator) navigator.vibrate(40);
+    vibrate(40);
     window.location.href = `tel:${cleanPhone}`;
   };
 
@@ -176,7 +190,7 @@ export default function App() {
           completeRegistration();
           return 100;
         }
-        if (p % 10 === 0 && 'vibrate' in navigator) navigator.vibrate(15);
+        if (p % 10 === 0) vibrate(15);
         return p + 2;
       });
     }, 40);
@@ -206,7 +220,7 @@ export default function App() {
     setUser(newUser);
     firebaseService.saveLocalProfile(newUser);
     setIsScanning(false);
-    if ('vibrate' in navigator) navigator.vibrate([100, 50, 400]);
+    vibrate([100, 50, 400]);
   };
 
   const manageContact = (action: 'add' | 'remove', id?: string) => {
@@ -221,7 +235,7 @@ export default function App() {
       }
       setTempContactName('');
       setTempContactPhone('');
-      if ('vibrate' in navigator) navigator.vibrate(30);
+      vibrate(30);
     } else if (action === 'remove' && id) {
       if (user) {
         const u = { ...user, contacts: user.contacts.filter(c => c.id !== id) };
@@ -230,7 +244,15 @@ export default function App() {
       } else {
         setRegContacts(regContacts.filter(c => c.id !== id));
       }
-      if ('vibrate' in navigator) navigator.vibrate(20);
+      vibrate(20);
+    }
+  };
+
+  const handleReset = () => {
+    if (confirm("Resetting will wipe all biometric patterns and legacy data. Proceed?")) {
+      vibrate(100);
+      localStorage.clear();
+      window.location.reload();
     }
   };
 
@@ -251,7 +273,7 @@ export default function App() {
         <div className="space-y-4 animate-fade-in">
           <input value={regName} onChange={e => setRegName(e.target.value)} type="text" placeholder={t.nameLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl outline-none focus:ring-2 ring-purple-500 text-lg transition-all" />
           <input value={regPhone} onChange={e => setRegPhone(e.target.value)} type="tel" placeholder={t.phoneLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl outline-none focus:ring-2 ring-purple-500 text-lg transition-all" />
-          <button disabled={!regName || !regPhone} onClick={() => { if ('vibrate' in navigator) navigator.vibrate(40); setRegStep(2); }} className="w-full bg-purple-600 p-6 rounded-3xl font-black text-xl transition-all active:scale-95 disabled:opacity-30">SET GUARDIANS</button>
+          <button disabled={!regName || !regPhone} onClick={() => { vibrate(40); setRegStep(2); }} className="w-full bg-purple-600 p-6 rounded-3xl font-black text-xl transition-all active:scale-95 disabled:opacity-30">SET GUARDIANS</button>
         </div>
       )}
 
@@ -276,7 +298,7 @@ export default function App() {
             <button onClick={() => manageContact('add')} className="w-full bg-slate-700 p-3 rounded-2xl font-bold flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest transition-all active:bg-slate-600"><ICONS.Plus /> {t.addContact}</button>
           </div>
           <div className="pt-2 space-y-3">
-            <button disabled={regContacts.length === 0} onClick={() => { if ('vibrate' in navigator) navigator.vibrate(40); setRegStep(3); }} className="w-full bg-purple-600 p-6 rounded-3xl font-black text-xl disabled:opacity-30 transition-all active:scale-95 shadow-lg shadow-purple-900/40 uppercase tracking-tighter">FINALIZE SETUP</button>
+            <button disabled={regContacts.length === 0} onClick={() => { vibrate(40); setRegStep(3); }} className="w-full bg-purple-600 p-6 rounded-3xl font-black text-xl disabled:opacity-30 transition-all active:scale-95 shadow-lg shadow-purple-900/40 uppercase tracking-tighter">FINALIZE SETUP</button>
             <button onClick={() => setRegStep(1)} className="w-full text-slate-500 font-black text-[10px] uppercase tracking-widest py-2">Back</button>
           </div>
         </div>
@@ -301,6 +323,136 @@ export default function App() {
   return (
     <div className="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col relative overflow-hidden">
       
+      {/* Side Menu Drawer */}
+      {showMenu && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[4000] animate-fade-in" onClick={() => setShowMenu(false)}>
+          <div 
+            className="bg-white w-4/5 h-full max-w-[300px] shadow-2xl p-8 flex flex-col justify-between animate-slide-right"
+            onClick={e => e.stopPropagation()}
+          >
+            <div>
+              <div className="mb-12 flex items-center gap-4">
+                <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-xl">
+                  <ICONS.ShieldCheck />
+                </div>
+                <div>
+                  <h3 className="font-black text-xl tracking-tighter text-slate-900">{t.appName}</h3>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Enterprise Edition</p>
+                </div>
+              </div>
+
+              <nav className="space-y-2">
+                <button onClick={() => { setShowMenu(false); setShowSettings(true); }} className="w-full flex items-center gap-4 p-5 rounded-3xl hover:bg-slate-50 active:bg-slate-100 transition-all text-slate-700 font-black text-sm uppercase tracking-tight">
+                  <span className="text-slate-400"><ICONS.Settings /></span>
+                  <span>{t.settings}</span>
+                </button>
+                <button onClick={() => { setShowMenu(false); setShowContactsModal(true); }} className="w-full flex items-center gap-4 p-5 rounded-3xl hover:bg-slate-50 active:bg-slate-100 transition-all text-slate-700 font-black text-sm uppercase tracking-tight">
+                  <span className="text-slate-400"><ICONS.UserGroup /></span>
+                  <span>{t.manageContacts}</span>
+                </button>
+                <button onClick={() => { setShowMenu(false); setShowPrivacy(true); }} className="w-full flex items-center gap-4 p-5 rounded-3xl hover:bg-slate-50 active:bg-slate-100 transition-all text-slate-700 font-black text-sm uppercase tracking-tight">
+                  <span className="text-slate-400"><ICONS.Privacy /></span>
+                  <span>{t.privacyPolicy}</span>
+                </button>
+              </nav>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100">
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Authenticated Account</p>
+                 <p className="text-xs font-bold text-slate-600 truncate">{user.name}</p>
+              </div>
+              <button 
+                onClick={handleReset}
+                className="w-full p-5 rounded-[2rem] text-red-500 font-black text-xs uppercase tracking-widest border border-red-50 bg-red-50/30 hover:bg-red-50 active:scale-95 transition-all"
+              >
+                {t.signOut}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[5000] flex items-center justify-center p-6 animate-fade-in">
+           <div className="bg-white w-full rounded-[4rem] p-10 space-y-10 animate-slide-up shadow-2xl relative overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-slate-50 rounded-full blur-3xl opacity-50"></div>
+              <div className="flex justify-between items-center relative z-10">
+                <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{t.settingsTitle}</h2>
+                <button onClick={() => setShowSettings(false)} className="p-3 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors text-slate-500 font-black">✕</button>
+              </div>
+              <div className="space-y-8 relative z-10">
+                <div className="flex justify-between items-center group cursor-pointer" onClick={() => setNotificationsEnabled(!notificationsEnabled)}>
+                  <div>
+                    <p className="font-black text-slate-800 tracking-tight">{t.notifications}</p>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Firebase Push Sync</p>
+                  </div>
+                  <div className={`w-14 h-8 rounded-full transition-all flex items-center px-1 shadow-inner ${notificationsEnabled ? 'bg-green-500' : 'bg-slate-200'}`}>
+                    <div className={`w-6 h-6 bg-white rounded-full shadow-lg transition-all ${notificationsEnabled ? 'ml-6' : 'ml-0'}`}></div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center group cursor-pointer" onClick={() => setHapticsEnabled(!hapticsEnabled)}>
+                  <div>
+                    <p className="font-black text-slate-800 tracking-tight">{t.haptics}</p>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Taptic System Engine</p>
+                  </div>
+                  <div className={`w-14 h-8 rounded-full transition-all flex items-center px-1 shadow-inner ${hapticsEnabled ? 'bg-green-500' : 'bg-slate-200'}`}>
+                    <div className={`w-6 h-6 bg-white rounded-full shadow-lg transition-all ${hapticsEnabled ? 'ml-6' : 'ml-0'}`}></div>
+                  </div>
+                </div>
+                <div className="p-6 bg-slate-50 rounded-[2.5rem] flex justify-between items-center border border-slate-100 shadow-inner">
+                  <p className="font-black text-slate-800 tracking-tight">{t.checkInWindow}</p>
+                  <p className="text-purple-600 font-black text-xl tracking-tighter">09:00 AM</p>
+                </div>
+              </div>
+              <button onClick={() => setShowSettings(false)} className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all text-sm">Save Preferences</button>
+           </div>
+        </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacy && (
+        <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-3xl z-[5000] flex items-center justify-center p-6 animate-fade-in">
+           <div className="bg-white w-full rounded-[4rem] p-10 space-y-8 animate-slide-up shadow-2xl overflow-hidden relative border border-white/20">
+              <div className="absolute top-0 right-0 p-8 text-5xl opacity-5 grayscale pointer-events-none">🛡️</div>
+              <div className="flex flex-col items-center text-center">
+                 <div className="p-4 bg-purple-50 text-purple-600 rounded-3xl mb-4"><ICONS.Privacy /></div>
+                 <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{t.privacyTitle}</h2>
+              </div>
+              <div className="max-h-[350px] overflow-y-auto pr-3 custom-scrollbar">
+                <p className="text-slate-600 leading-relaxed font-bold text-sm mb-6">
+                  {t.privacyText}
+                </p>
+                <div className="space-y-6">
+                  <div className="flex gap-4 items-start p-4 bg-green-50/50 rounded-2xl border border-green-100">
+                    <div className="mt-1 text-green-500"><ICONS.ShieldCheck /></div>
+                    <div>
+                      <p className="text-xs font-black text-green-800 uppercase tracking-widest mb-1">Secure Sync</p>
+                      <p className="text-[11px] font-bold text-slate-500">All biometric data and soul patterns are hashed locally before Firebase synchronization.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4 items-start p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                    <div className="mt-1 text-blue-500"><ICONS.ShieldCheck /></div>
+                    <div>
+                       <p className="text-xs font-black text-blue-800 uppercase tracking-widest mb-1">Zero Visibility</p>
+                       <p className="text-[11px] font-bold text-slate-500">Location is ONLY broadcast to your guardians when the SOS Panic trigger is active.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4 items-start p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="mt-1 text-slate-400"><ICONS.Clock /></div>
+                    <div>
+                       <p className="text-xs font-black text-slate-700 uppercase tracking-widest mb-1">Data Retention</p>
+                       <p className="text-[11px] font-bold text-slate-500">History older than 30 days is automatically purged from the safety ledger.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setShowPrivacy(false)} className="w-full bg-purple-600 text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl shadow-purple-200 active:scale-95 transition-all text-sm">Dismiss Shield</button>
+           </div>
+        </div>
+      )}
+
       {/* SOS Confirmation Dialog */}
       {showPanicConfirm && (
         <div className="fixed inset-0 bg-slate-900/98 backdrop-blur-2xl z-[5000] flex items-end p-5">
@@ -310,30 +462,35 @@ export default function App() {
                  <ICONS.Alert />
                </div>
                <h2 className="text-2xl font-black text-slate-900 tracking-tighter mb-4">Emergency Alert</h2>
-               <p className="text-slate-600 font-bold text-xl leading-tight opacity-90">
-                 {t.confirmPanic}
-               </p>
                
-               <div className="mt-8 min-h-[80px]">
+               <div className="mb-10 min-h-[100px]">
                  {aiReassurance ? (
-                   <div className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 italic text-slate-500 text-sm font-medium animate-fade-in shadow-inner">
-                     <div className="flex items-center justify-center gap-2 mb-2">
-                       <span className="text-purple-500"><ICONS.Sparkles /></span>
-                       <span className="text-[10px] font-black uppercase tracking-widest">{t.aiSOSPrompt}</span>
+                   <div className="p-8 bg-indigo-50/50 rounded-[2.5rem] border border-indigo-100 italic text-indigo-700 text-lg font-bold animate-fade-in shadow-inner leading-tight">
+                     <div className="flex items-center justify-center gap-2 mb-3">
+                       <span className="text-purple-500 animate-pulse"><ICONS.Sparkles /></span>
+                       <span className="text-[11px] font-black uppercase tracking-[0.3em] text-indigo-400">{t.aiSOSPrompt}</span>
                      </div>
                      "{aiReassurance}"
                    </div>
                  ) : (
-                   <div className="flex flex-col items-center gap-2 opacity-30">
-                     <div className="w-12 h-1 bg-slate-200 rounded-full animate-pulse"></div>
-                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.aiThinking}</span>
+                   <div className="flex flex-col items-center gap-4 py-6">
+                     <div className="flex gap-2">
+                        <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce"></div>
+                        <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                        <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                     </div>
+                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 animate-pulse">{t.aiThinking}</span>
                    </div>
                  )}
                </div>
+
+               <p className="text-slate-600 font-bold text-xl leading-tight opacity-90 px-4">
+                 {t.confirmPanic}
+               </p>
             </div>
             <div className="space-y-5">
               <button onClick={handlePanicConfirm} className="w-full bg-red-600 text-white py-8 rounded-[2.5rem] font-black text-2xl shadow-2xl shadow-red-200 active:scale-95 transition-all uppercase tracking-tighter">YES, ALERT GUARDIANS</button>
-              <button onClick={() => { if ('vibrate' in navigator) navigator.vibrate(20); setShowPanicConfirm(false); }} className="w-full bg-slate-100 text-slate-800 py-6 rounded-[2.5rem] font-black text-xl active:scale-95 transition-all uppercase opacity-60">Cancel</button>
+              <button onClick={() => { vibrate(20); setShowPanicConfirm(false); }} className="w-full bg-slate-100 text-slate-800 py-6 rounded-[2.5rem] font-black text-xl active:scale-95 transition-all uppercase opacity-60">Cancel</button>
             </div>
           </div>
         </div>
@@ -350,7 +507,7 @@ export default function App() {
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-3">Legacy Meter</p>
               <div className="flex justify-center items-end gap-1 mb-2 text-white">
                  <span className="text-5xl font-black tracking-tighter">{life.elapsed + 1}</span>
-                 <span className="text-slate-500 font-bold mb-1">/ {user.predictedDays} days</span>
+                 <span className="text-slate-500 font-bold mb-1">/ {user?.predictedDays} days</span>
               </div>
               <div className="w-full h-2.5 bg-white/10 rounded-full mt-4 overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-[2000ms]" style={{ width: `${100 - life.percent}%` }}></div>
@@ -366,29 +523,31 @@ export default function App() {
 
       {/* Dashboard Header */}
       <header className="bg-white p-6 flex justify-between items-center border-b sticky top-0 z-[100] shadow-sm">
-        <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 tracking-tighter">
-          {status === SafetyStatus.SAFE ? <span className="text-green-600"><ICONS.ShieldCheck /></span> : <span className="text-red-600 animate-pulse"><ICONS.Alert /></span>}
-          {t.appName}
-        </h2>
-        <div className="flex gap-3 items-center">
-           {/* Contacts Management Button - Gated by showContactsModal state */}
+        <div className="flex items-center gap-4">
+           {/* Hamburger Menu Button */}
            <button 
-             onClick={() => { if ('vibrate' in navigator) navigator.vibrate(30); setShowContactsModal(true); }} 
-             className="p-3 bg-slate-100 rounded-full text-slate-700 active:scale-90 transition-all hover:bg-slate-200"
-             aria-label={t.manageContacts}
+             onClick={() => { vibrate(20); setShowMenu(true); }}
+             className="p-3 bg-slate-50 rounded-full text-slate-700 active:scale-90 transition-all hover:bg-slate-100 border border-slate-100"
+             aria-label={t.menu}
            >
-             <ICONS.UserGroup />
+             <ICONS.Menu />
            </button>
+           <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 tracking-tighter">
+             {status === SafetyStatus.SAFE ? <span className="text-green-600"><ICONS.ShieldCheck /></span> : <span className="text-red-600 animate-pulse"><ICONS.Alert /></span>}
+             {t.appName}
+           </h2>
+        </div>
+        <div className="flex gap-2 items-center">
            <button 
-             onClick={() => { if ('vibrate' in navigator) navigator.vibrate(20); setLanguage(l => l === Language.EN ? Language.HI : Language.EN); }} 
+             onClick={() => { vibrate(20); setLanguage(l => l === Language.EN ? Language.HI : Language.EN); }} 
              className="text-[10px] font-black bg-slate-900 text-white px-5 py-2 rounded-full uppercase tracking-tighter shadow-md hover:bg-black transition-colors"
            >
-             {language}
+             {language.toUpperCase()}
            </button>
         </div>
       </header>
 
-      <main className="flex-grow p-6 space-y-6 overflow-y-auto pb-4">
+      <main className="flex-grow p-6 space-y-6 overflow-y-auto pb-4 custom-scrollbar">
         {/* Gemini AI Dashboard Insight */}
         <div className="bg-gradient-to-br from-indigo-50 to-white p-7 rounded-[3.5rem] border shadow-md flex gap-6 animate-fade-in relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
@@ -411,7 +570,7 @@ export default function App() {
                 <ICONS.Clock />
                 <span className="font-black uppercase text-[10px] tracking-[0.2em]">{t.lifeClock}</span>
              </div>
-             <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-4 py-1.5 rounded-full border border-purple-100 uppercase">{user.initialSoulAge}</span>
+             <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-4 py-1.5 rounded-full border border-purple-100 uppercase">{user?.initialSoulAge}</span>
           </div>
           <div className="space-y-5">
              <div className="flex justify-between text-[11px] font-bold text-slate-500 uppercase tracking-tight">
@@ -454,7 +613,7 @@ export default function App() {
 
       {/* Footer Safety Actions */}
       <footer className="p-6 pb-14 bg-white border-t sticky bottom-0 z-[100] safe-area-inset-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.03)] space-y-4">
-        {user.contacts.length > 0 && (
+        {user && user.contacts.length > 0 && (
           <button 
             onClick={handleCallPrimaryContact}
             className="w-full bg-indigo-600 text-white py-5 rounded-[2.5rem] font-black text-lg shadow-xl shadow-indigo-100 active:scale-[0.98] transition-all flex items-center justify-center gap-3 uppercase tracking-tighter"
@@ -473,30 +632,56 @@ export default function App() {
 
       {/* Contacts Management Modal */}
       {showContactsModal && (
-        <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-xl z-[2000] flex items-end p-4">
-          <div className="bg-white w-full rounded-[4rem] p-8 space-y-6 animate-slide-up max-h-[85vh] flex flex-col shadow-2xl">
-            <div className="flex justify-between items-center px-2">
-               <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{t.manageContacts}</h2>
-               <button onClick={() => setShowContactsModal(false)} className="bg-slate-100 p-3 rounded-full active:scale-90 text-slate-600">✕</button>
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[2000] flex items-end sm:items-center justify-center p-0 sm:p-6 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-t-[3rem] sm:rounded-[4rem] p-8 space-y-6 animate-slide-up max-h-[92vh] flex flex-col shadow-2xl border-t border-slate-100 overflow-hidden">
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto -mt-2 mb-2 sm:hidden"></div>
+            <div className="flex justify-between items-center pb-2">
+               <div className="flex items-center gap-3">
+                 <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl">
+                   <ICONS.UserGroup />
+                 </div>
+                 <div>
+                   <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{t.manageContacts}</h2>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Emergency Circle</p>
+                 </div>
+               </div>
+               <button onClick={() => setShowContactsModal(false)} className="bg-slate-50 p-3 rounded-full hover:bg-slate-100 active:scale-90 transition-all text-slate-400 border border-slate-100">✕</button>
             </div>
-            <div className="flex-grow overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-              {user.contacts.length === 0 ? <p className="text-slate-400 text-center py-10 font-bold italic">{t.noContacts}</p> : 
-                user.contacts.map(c => (
-                  <div key={c.id} className="bg-slate-50 p-4 rounded-3xl flex justify-between items-center border border-slate-100 animate-slide-up">
+            <div className="flex-grow overflow-y-auto space-y-3 pr-1 custom-scrollbar min-h-[120px]">
+              {!user || user.contacts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 opacity-40">
+                  <div className="scale-150 mb-6 text-slate-300"><ICONS.UserGroup /></div>
+                  <p className="text-slate-500 font-bold italic text-sm">{t.noContacts}</p>
+                </div>
+              ) : (
+                user.contacts.map((c, idx) => (
+                  <div key={c.id} className="bg-slate-50 p-5 rounded-[2.5rem] flex justify-between items-center border border-slate-100 hover:border-purple-200 hover:bg-white transition-all animate-fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-black text-sm">{c.name[0]}</div>
-                      <div><p className="font-black text-slate-800 text-sm">{c.name}</p><p className="text-[10px] text-slate-500 font-bold">{c.phone}</p></div>
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center text-purple-600 font-black text-lg border-2 border-white shadow-sm">
+                        {c.name[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-black text-slate-900 text-base tracking-tight">{c.name}</p>
+                        <p className="text-[11px] text-slate-500 font-bold tracking-tight bg-white px-2 py-0.5 rounded-full inline-block mt-1 shadow-sm border border-slate-100">{c.phone}</p>
+                      </div>
                     </div>
-                    <button onClick={() => manageContact('remove', c.id)} className="text-red-500 p-2 active:scale-75 transition-all"><ICONS.Trash /></button>
+                    <button onClick={() => manageContact('remove', c.id)} className="text-slate-300 hover:text-red-500 p-3 hover:bg-red-50 rounded-full active:scale-75 transition-all">
+                      <ICONS.Trash />
+                    </button>
                   </div>
-                ))}
+                ))
+              )}
             </div>
-            <div className="bg-slate-100 p-6 rounded-[3rem] space-y-3 border border-slate-200 shadow-inner">
-               <input value={tempContactName} onChange={e => setTempContactName(e.target.value)} type="text" placeholder={t.contactName} className="w-full p-4 bg-white rounded-2xl outline-none text-sm font-bold shadow-sm" />
-               <input value={tempContactPhone} onChange={e => setTempContactPhone(e.target.value)} type="tel" placeholder={t.contactPhone} className="w-full p-4 bg-white rounded-2xl outline-none text-sm font-bold shadow-sm" />
-               <button onClick={() => manageContact('add')} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black flex items-center justify-center gap-2 text-xs active:bg-black transition-colors uppercase tracking-widest"><ICONS.Plus /> {t.addContact}</button>
+            <div className="bg-slate-50 p-6 rounded-[3.5rem] space-y-4 border border-slate-100 shadow-inner mt-2">
+               <div className="space-y-3">
+                 <input value={tempContactName} onChange={e => setTempContactName(e.target.value)} type="text" placeholder={t.contactName} className="w-full p-4 pl-6 bg-white rounded-3xl outline-none text-sm font-bold shadow-sm border focus:border-purple-300 transition-all" />
+                 <input value={tempContactPhone} onChange={e => setTempContactPhone(e.target.value)} type="tel" placeholder={t.contactPhone} className="w-full p-4 pl-6 bg-white rounded-3xl outline-none text-sm font-bold shadow-sm border focus:border-purple-300 transition-all" />
+               </div>
+               <button onClick={() => { if(tempContactName && tempContactPhone) manageContact('add'); }} disabled={!tempContactName || !tempContactPhone} className="w-full bg-slate-900 text-white p-5 rounded-3xl font-black flex items-center justify-center gap-2 text-xs active:bg-black transition-all uppercase tracking-[0.2em] shadow-lg shadow-slate-200 disabled:opacity-30">
+                 <ICONS.Plus /> {t.addContact}
+               </button>
             </div>
-            <button onClick={() => setShowContactsModal(false)} className="w-full bg-purple-600 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-sm shadow-lg shadow-purple-200 active:scale-95 transition-all">Done</button>
+            <button onClick={() => setShowContactsModal(false)} className="w-full bg-purple-600 text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-base shadow-xl shadow-purple-200 active:scale-[0.98] transition-all mt-2">Done</button>
           </div>
         </div>
       )}
