@@ -36,6 +36,7 @@ export default function App() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
 
@@ -391,6 +392,10 @@ export default function App() {
                   <span className="text-slate-400"><ICONS.Privacy /></span>
                   <span>{t.privacyPolicy}</span>
                 </button>
+                <button onClick={() => { setShowMenu(false); setShowAbout(true); }} className="w-full flex items-center gap-4 p-5 rounded-3xl hover:bg-slate-50 active:bg-slate-100 transition-all text-slate-700 font-black text-sm uppercase tracking-tight">
+                  <span className="text-slate-400"><ICONS.Info /></span>
+                  <span>{t.about}</span>
+                </button>
               </nav>
             </div>
 
@@ -444,6 +449,33 @@ export default function App() {
                 </div>
               </div>
               <button onClick={() => setShowSettings(false)} className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all text-sm">Save Preferences</button>
+           </div>
+        </div>
+      )}
+
+      {/* About Modal */}
+      {showAbout && (
+        <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-2xl z-[5000] flex items-center justify-center p-6 animate-fade-in">
+           <div className="bg-white w-full rounded-[4rem] p-10 space-y-8 animate-slide-up shadow-2xl overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-8 text-5xl opacity-5 grayscale pointer-events-none">✨</div>
+              <div className="flex flex-col items-center text-center">
+                 <div className="p-4 bg-indigo-50 text-indigo-600 rounded-3xl mb-4 shadow-sm">
+                   <ICONS.Info />
+                 </div>
+                 <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{t.aboutTitle}</h2>
+              </div>
+              <div className="space-y-6">
+                 <p className="text-slate-600 leading-relaxed font-bold text-sm text-center">
+                   {t.aboutDescription}
+                 </p>
+                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">{t.developerWebsite}</p>
+                    <a href={t.devWebsiteLink} target="_blank" rel="noopener noreferrer" className="block text-center text-purple-600 font-black text-base hover:underline break-all">
+                       {t.devWebsiteLink.replace('https://', '')}
+                    </a>
+                 </div>
+              </div>
+              <button onClick={() => setShowAbout(false)} className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all text-sm">Close</button>
            </div>
         </div>
       )}
