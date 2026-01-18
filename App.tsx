@@ -43,12 +43,15 @@ export default function App() {
   const [regStep, setRegStep] = useState(1);
   const [regName, setRegName] = useState('');
   const [regPhone, setRegPhone] = useState('');
+  const [regHobbies, setRegHobbies] = useState('');
   const [regContacts, setRegContacts] = useState<EmergencyContact[]>([]);
   const [tempContactName, setTempContactName] = useState('');
   const [tempContactPhone, setTempContactPhone] = useState('');
   
+  // Scanning State (Dual-use: Reg & Daily)
   const [scanProgress, setScanProgress] = useState(0);
   const [isScanning, setIsScanning] = useState(false);
+  const [isDailyScanOverlay, setIsDailyScanOverlay] = useState(false);
   const scanTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const batteryLevel = useBattery();
@@ -127,6 +130,7 @@ export default function App() {
     setIsSyncing(false);
     setStatus(SafetyStatus.SAFE);
     setShowMorningForce(false);
+    setIsDailyScanOverlay(false);
     vibrate([20, 100]);
   };
 
@@ -179,15 +183,19 @@ export default function App() {
     window.location.href = `tel:${cleanPhone}`;
   };
 
-  const startScan = () => {
-    if (regName.trim() === '' || regPhone.trim() === '') return;
+  const startScan = (isDaily: boolean = false) => {
+    if (!isDaily && (regName.trim() === '' || regPhone.trim() === '')) return;
     setIsScanning(true);
     setScanProgress(0);
     scanTimerRef.current = setInterval(() => {
       setScanProgress(p => {
         if (p >= 100) {
           clearInterval(scanTimerRef.current!);
-          completeRegistration();
+          if (isDaily) {
+            handleCheckIn();
+          } else {
+            completeRegistration();
+          }
           return 100;
         }
         if (p % 10 === 0) vibrate(15);
@@ -205,10 +213,12 @@ export default function App() {
   };
 
   const completeRegistration = async () => {
-    const analysis = await getSoulAnalysis(regName, language);
+    const hobbies = regHobbies.split(',').map(h => h.trim()).filter(h => h !== '');
+    const analysis = await getSoulAnalysis(regName, language, hobbies);
     const newUser: UserProfile = {
       name: regName,
       phone: regPhone,
+      hobbies: hobbies,
       checkInHour: 9,
       lastCheckIn: Date.now(),
       contacts: regContacts,
@@ -265,7 +275,7 @@ export default function App() {
   if (!user) return (
     <div className="max-w-md mx-auto h-screen bg-slate-900 text-white p-8 flex flex-col justify-center overflow-hidden relative">
       <div className="mb-10 text-center">
-        <h1 className="text-4xl font-black mb-1 text-white tracking-tighter">ZindaHu AI</h1>
+        <h1 className="text-4xl font-black mb-1 text-white tracking-tighter" style={{ textShadow: '0 0 20px rgba(168,85,247,0.3)' }}>ZindaHu AI</h1>
         <p className="text-purple-400 font-bold uppercase text-[10px] tracking-[0.4em]">{t.setupTitle}</p>
       </div>
 
@@ -273,7 +283,8 @@ export default function App() {
         <div className="space-y-4 animate-fade-in">
           <input value={regName} onChange={e => setRegName(e.target.value)} type="text" placeholder={t.nameLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl outline-none focus:ring-2 ring-purple-500 text-lg transition-all" />
           <input value={regPhone} onChange={e => setRegPhone(e.target.value)} type="tel" placeholder={t.phoneLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl outline-none focus:ring-2 ring-purple-500 text-lg transition-all" />
-          <button disabled={!regName || !regPhone} onClick={() => { vibrate(40); setRegStep(2); }} className="w-full bg-purple-600 p-6 rounded-3xl font-black text-xl transition-all active:scale-95 disabled:opacity-30">SET GUARDIANS</button>
+          <input value={regHobbies} onChange={e => setRegHobbies(e.target.value)} type="text" placeholder={t.hobbiesLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl outline-none focus:ring-2 ring-purple-500 text-lg transition-all" />
+          <button disabled={!regName || !regPhone} onClick={() => { vibrate(40); setRegStep(2); }} className="w-full bg-purple-600 p-6 rounded-3xl font-black text-xl transition-all active:scale-95 disabled:opacity-30 shadow-lg shadow-purple-900/20">SET GUARDIANS</button>
         </div>
       )}
 
@@ -283,7 +294,7 @@ export default function App() {
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Emergency Circle</p>
             <p className="text-[10px] font-black bg-white/10 px-2 py-1 rounded">{regContacts.length}</p>
           </div>
-          <div className="overflow-y-auto space-y-3 flex-grow pr-2">
+          <div className="overflow-y-auto space-y-3 flex-grow pr-2 custom-scrollbar">
             {regContacts.length === 0 && <p className="text-center py-10 text-slate-500 font-bold text-sm italic">{t.noContacts}</p>}
             {regContacts.map(c => (
               <div key={c.id} className="bg-white/5 p-4 rounded-2xl flex justify-between items-center border border-white/10 animate-slide-up">
@@ -306,12 +317,13 @@ export default function App() {
 
       {regStep === 3 && (
         <div className="flex flex-col items-center animate-slide-up">
-           <div onMouseDown={startScan} onMouseUp={cancelScan} onTouchStart={startScan} onTouchEnd={cancelScan}
+           <div onMouseDown={() => startScan(false)} onMouseUp={cancelScan} onTouchStart={() => startScan(false)} onTouchEnd={cancelScan}
              className={`w-64 h-64 rounded-full border-[8px] flex items-center justify-center transition-all relative overflow-hidden cursor-pointer
                ${isScanning ? 'border-purple-500 bg-purple-500/20 shadow-[0_0_100px_rgba(168,85,247,0.5)] scale-110' : 'border-white/10 bg-white/5 text-slate-400'}
              `}>
               <ICONS.Fingerprint />
-              {isScanning && <div className="absolute left-0 right-0 h-2 bg-purple-400 shadow-[0_0_20px_#a855f7]" style={{ top: `${scanProgress}%` }}></div>}
+              {isScanning && <div className="absolute left-0 right-0 h-2 bg-purple-400 shadow-[0_0_20px_#a855f7] z-20" style={{ top: `${scanProgress}%` }}></div>}
+              {isScanning && <div className="absolute inset-0 bg-purple-600/10 backdrop-blur-[2px] z-10"></div>}
            </div>
            <p className="mt-10 font-black tracking-[0.3em] text-purple-400 uppercase text-xs animate-pulse">{isScanning ? t.scanning : t.holdToScan}</p>
            <button onClick={() => setRegStep(2)} className="mt-16 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] opacity-50">Cancel</button>
@@ -323,6 +335,31 @@ export default function App() {
   return (
     <div className="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col relative overflow-hidden">
       
+      {/* Daily Check-in Scan Overlay */}
+      {isDailyScanOverlay && (
+        <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-2xl z-[6000] flex flex-col items-center justify-center p-8 animate-fade-in">
+           <div className="mb-10 text-center">
+              <h2 className="text-2xl font-black text-white tracking-tighter mb-2">{t.soulScanner}</h2>
+              <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.4em]">{t.scanToCheckIn}</p>
+           </div>
+           
+           <div onMouseDown={() => startScan(true)} onMouseUp={cancelScan} onTouchStart={() => startScan(true)} onTouchEnd={cancelScan}
+             className={`w-64 h-64 rounded-full border-[8px] flex items-center justify-center transition-all relative overflow-hidden cursor-pointer
+               ${isScanning ? 'border-purple-500 bg-purple-500/20 shadow-[0_0_100px_rgba(168,85,247,0.5)] scale-110' : 'border-white/10 bg-white/5 text-slate-400'}
+             `}>
+              <ICONS.Fingerprint />
+              {isScanning && <div className="absolute left-0 right-0 h-2 bg-purple-400 shadow-[0_0_20px_#a855f7] z-20" style={{ top: `${scanProgress}%` }}></div>}
+              {isScanning && <div className="absolute inset-0 bg-purple-600/10 backdrop-blur-[2px] z-10"></div>}
+           </div>
+
+           <p className="mt-10 font-black tracking-[0.3em] text-purple-400 uppercase text-xs animate-pulse">
+             {isScanning ? t.scanning : t.holdToScan}
+           </p>
+
+           <button onClick={() => setIsDailyScanOverlay(false)} className="mt-20 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] opacity-50">Cancel</button>
+        </div>
+      )}
+
       {/* Side Menu Drawer */}
       {showMenu && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[4000] animate-fade-in" onClick={() => setShowMenu(false)}>
@@ -360,7 +397,7 @@ export default function App() {
             <div className="space-y-4">
               <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100">
                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Authenticated Account</p>
-                 <p className="text-xs font-bold text-slate-600 truncate">{user.name}</p>
+                 <p className="text-xs font-bold text-slate-600 truncate">{user?.name}</p>
               </div>
               <button 
                 onClick={handleReset}
@@ -514,7 +551,7 @@ export default function App() {
               </div>
            </div>
 
-           <button onClick={handleCheckIn} className="w-64 h-64 rounded-full bg-white text-green-600 shadow-2xl flex flex-col items-center justify-center p-8 border-[12px] border-green-50 animate-pulse active:scale-95 transition-all">
+           <button onClick={() => setIsDailyScanOverlay(true)} className="w-64 h-64 rounded-full bg-white text-green-600 shadow-2xl flex flex-col items-center justify-center p-8 border-[12px] border-green-50 animate-pulse active:scale-95 transition-all">
               <span className="text-3xl font-black leading-none uppercase tracking-tighter">{t.imAlive}</span>
               <div className="mt-3 w-1.5 h-1.5 bg-green-500 rounded-full"></div>
            </button>
@@ -548,14 +585,14 @@ export default function App() {
       </header>
 
       <main className="flex-grow p-6 space-y-6 overflow-y-auto pb-4 custom-scrollbar">
-        {/* Gemini AI Dashboard Insight */}
+        {/* Gemini AI Dashboard Insight - Hobby Motivation */}
         <div className="bg-gradient-to-br from-indigo-50 to-white p-7 rounded-[3.5rem] border shadow-md flex gap-6 animate-fade-in relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
           <div className="text-5xl drop-shadow-xl select-none">✨</div>
           <div className="flex flex-col justify-center">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-purple-600"><ICONS.Sparkles /></span>
-              <p className="text-[9px] font-black text-purple-600 uppercase tracking-[0.2em]">{t.aiSafetyCoach}</p>
+              <p className="text-[9px] font-black text-purple-600 uppercase tracking-[0.2em]">{t.hobbyMotivation}</p>
             </div>
             <p className="text-sm font-bold text-slate-800 leading-snug italic">
               {aiInsight || t.aiThinking}
@@ -570,7 +607,9 @@ export default function App() {
                 <ICONS.Clock />
                 <span className="font-black uppercase text-[10px] tracking-[0.2em]">{t.lifeClock}</span>
              </div>
-             <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-4 py-1.5 rounded-full border border-purple-100 uppercase">{user?.initialSoulAge}</span>
+             <div className="flex flex-col items-end">
+               <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-4 py-1.5 rounded-full border border-purple-100 uppercase">{user?.initialSoulAge}</span>
+             </div>
           </div>
           <div className="space-y-5">
              <div className="flex justify-between text-[11px] font-bold text-slate-500 uppercase tracking-tight">
@@ -595,17 +634,19 @@ export default function App() {
           </div>
         </div>
 
-        {/* Main Interaction Button */}
+        {/* Main Interaction Button - Triggers Fingerprint Scan Overlay */}
         <div className="flex justify-center py-6">
           <button 
-            onClick={handleCheckIn}
+            onClick={() => setIsDailyScanOverlay(true)}
             disabled={isSyncing}
             className={`w-64 h-64 rounded-full bg-white shadow-2xl transition-all active:scale-95 flex flex-col items-center justify-center p-8 border-[16px] 
               ${isCheckInDue ? 'alive-btn-pulse border-orange-50 shadow-orange-100/50' : 'border-slate-50 shadow-slate-200/50'}
               ${isSyncing ? 'opacity-50 grayscale' : 'hover:scale-105'}
             `}
           >
-            <span className={`text-3xl font-black leading-none text-center tracking-tighter uppercase ${status === SafetyStatus.SAFE ? 'text-green-600' : 'text-red-600'}`}>{t.imAlive}</span>
+            <span className={`text-3xl font-black leading-none text-center tracking-tighter uppercase ${status === SafetyStatus.SAFE ? 'text-green-600' : 'text-red-600'}`}>
+              {t.imAlive}
+            </span>
             <div className={`mt-6 h-1 w-12 rounded-full transition-all duration-500 ${isSyncing ? 'bg-purple-500 w-24' : 'bg-slate-100'}`}></div>
           </button>
         </div>

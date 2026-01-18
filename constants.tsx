@@ -17,6 +17,7 @@ export const TRANSLATIONS = {
     setupSubtitle: "Hold to register your soul pattern",
     nameLabel: "Your Name",
     phoneLabel: "Mobile Number",
+    hobbiesLabel: "Your Hobbies (e.g. Cricket, Music)",
     finish: "Activate Shield",
     panic: "PANIC",
     confirmPanic: "Are you sure you want to alert your contacts immediately?",
@@ -56,7 +57,9 @@ export const TRANSLATIONS = {
     checkInWindow: "Check-in Time",
     notifications: "Smart Alerts",
     haptics: "Tactile Feedback",
-    vibrationStrength: "Vibration Strength"
+    vibrationStrength: "Vibration Strength",
+    hobbyMotivation: "Daily Motivation",
+    scanToCheckIn: "Scan Finger to Confirm Safety"
   },
   hi: {
     appName: 'ZindaHu AI',
@@ -73,6 +76,7 @@ export const TRANSLATIONS = {
     setupSubtitle: "अपनी आत्मा का पैटर्न रजिस्टर करें",
     nameLabel: "आपका नाम",
     phoneLabel: "मोबाइल नंबर",
+    hobbiesLabel: "आपकी पसंद (जैसे क्रिकेट, संगीत)",
     finish: "कवच सक्रिय करें",
     panic: "आपातकाल",
     confirmPanic: "क्या आप वाकई अपने संपर्कों को तुरंत सूचित करना चाहते हैं?",
@@ -112,7 +116,9 @@ export const TRANSLATIONS = {
     checkInWindow: "चेक-इन का समय",
     notifications: "स्मार्ट अलर्ट",
     haptics: "स्पर्श प्रतिक्रिया",
-    vibrationStrength: "कंपन शक्ति"
+    vibrationStrength: "कंपन शक्ति",
+    hobbyMotivation: "दैनिक प्रेरणा",
+    scanToCheckIn: "सुरक्षा पुष्टि के लिए स्कैन करें"
   }
 };
 

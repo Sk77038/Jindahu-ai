@@ -21,6 +21,7 @@ export interface UserProfile {
   name: string;
   age?: string;
   phone: string;
+  hobbies: string[];
   checkInHour: number; 
   lastCheckIn: number; 
   contacts: EmergencyContact[];

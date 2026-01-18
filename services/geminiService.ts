@@ -8,17 +8,17 @@ const getAIClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-export async function getSoulAnalysis(name: string, language: string) {
+export async function getSoulAnalysis(name: string, language: string, hobbies: string[]) {
   try {
     const ai = getAIClient();
     if (!ai) return { soulAge: "Immortal", reading: "Aura is cryptic.", predictedDays: 30000 };
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `User ${name} is registering for ZindaHu AI.
+      contents: `User ${name} is registering for ZindaHu AI. Their hobbies include: ${hobbies.join(', ')}.
       1. Invent a funny "Soul Age" (e.g., 'Born during Big Bang', 'Younger than WiFi').
       2. Predict a random "Life Duration in Days" for fun (between 25000 and 40000).
-      3. A short personality reading.
+      3. A short personality reading that references their hobbies.
       Language: ${language === 'hi' ? 'Hindi' : 'English'}.
       Return JSON: { "soulAge": string, "predictedDays": number, "reading": string }`,
       config: {
@@ -45,11 +45,20 @@ export async function getSafetyInsight(user: UserProfile) {
   try {
     const ai = getAIClient();
     if (!ai) return "Stay vigilant.";
+    
+    const hobbyStr = user.hobbies && user.hobbies.length > 0 
+      ? `Their hobbies are ${user.hobbies.join(', ')}.` 
+      : "They enjoy exploring life.";
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `User ${user.name} checked in. Their soul age is ${user.initialSoulAge}. Give a short, quirky 1-sentence motivational safety tip.`,
+      contents: `User ${user.name} just performed their daily fingerprint safety check. 
+      Their soul age is ${user.initialSoulAge}. ${hobbyStr}
+      Give a short, quirky, and highly motivating 1-sentence tip for today. 
+      The tip must relate to their hobbies to keep them inspired.
+      Language: ${user.language === 'hi' ? 'Hindi' : 'English'}.`,
     });
-    return response.text || "Stay safe.";
+    return response.text || "Stay safe and inspired.";
   } catch (error) {
     return "Your safety is our priority.";
   }
