@@ -1,15 +1,13 @@
+
 package com.zindahu.ai.ui.dashboard
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.zindahu.ai.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
 
-/**
- * ZindaHu AI - MainActivity
- * Production-ready Dashboard implementing MVVM and Data Binding.
- */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
@@ -18,6 +16,19 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Ensure the app can show over lockscreen if triggered by Receiver
+        if (intent.getStringExtra("TRIGGER_SOURCE") == "MORNING_UNLOCK") {
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            )
+            // Trigger a strong vibration to alert the user
+            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            vibrator.vibrate(500)
+        }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -27,29 +38,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupObservers() {
         viewModel.safetyStatus.observe(this) { status ->
-            // Update UI based on Green/Yellow/Red status
             binding.statusCard.setBackgroundResource(status.backgroundColor)
             binding.statusText.text = getString(status.labelRes)
-        }
-
-        viewModel.timeRemaining.observe(this) { time ->
-            binding.timerText.text = time
-        }
-
-        viewModel.lastCheckInTime.observe(this) { timeString ->
-            binding.lastCheckInText.text = timeString
         }
     }
 
     private fun setupListeners() {
         binding.btnImAlive.setOnClickListener {
-            // Trigger haptic feedback for elder-friendly interaction
-            it.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
             viewModel.confirmAlive()
+            // Clear flags once confirmed
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
 
         binding.btnPanic.setOnClickListener {
-            // Immediate emergency trigger
             viewModel.triggerPanicMode()
         }
     }

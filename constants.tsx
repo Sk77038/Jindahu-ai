@@ -23,10 +23,8 @@ export const TRANSLATIONS = {
     finish: "Activate Shield",
     panic: "PANIC",
     confirmPanic: "Are you sure? This will alert your contacts immediately.",
-    otpTitle: "Verify Number",
-    otpSubtitle: "We sent a code to your mobile",
-    verify: "Verify OTP",
-    locationAccess: "ZindaHu needs location access to share with family in emergencies.",
+    goodMorning: "Good Morning!",
+    morningPrompt: "Please confirm you are safe for today.",
     batteryAlert: "Battery is critically low! Sending auto-update to contacts."
   },
   hi: {
@@ -50,10 +48,8 @@ export const TRANSLATIONS = {
     finish: "कवच सक्रिय करें",
     panic: "आपातकाल",
     confirmPanic: "क्या आप निश्चित हैं? यह तुरंत आपके संपर्कों को अलर्ट कर देगा।",
-    otpTitle: "नंबर सत्यापित करें",
-    otpSubtitle: "हमने आपके मोबाइल पर एक कोड भेजा है",
-    verify: "ओटीपी सत्यापित करें",
-    locationAccess: "आपात स्थिति में परिवार के साथ साझा करने के लिए ZindaHu को स्थान पहुंच की आवश्यकता है।",
+    goodMorning: "शुभ प्रभात!",
+    morningPrompt: "कृपया पुष्टि करें कि आप आज सुरक्षित हैं।",
     batteryAlert: "बैटरी बहुत कम है! संपर्कों को ऑटो-अपडेट भेजा जा रहा है।"
   }
 };
@@ -64,14 +60,14 @@ export const ICONS = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     </svg>
   ),
-  User: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  ),
   Alert: () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  ),
+  Sun: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
     </svg>
   )
 };
