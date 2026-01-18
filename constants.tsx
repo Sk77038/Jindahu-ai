@@ -31,7 +31,17 @@ export const TRANSLATIONS = {
     daysElapsed: "Days of Life Lived",
     daysRemaining: "Days of Legacy Left",
     mementoMori: "One more day passed. Make today count!",
-    mementoMoriHi: "जीवन का एक दिन और कम हो गया। आज को खुल कर जीयें!"
+    mementoMoriHi: "जीवन का एक दिन और कम हो गया। आज को खुल कर जीयें!",
+    addContact: "Add Emergency Contact",
+    contactName: "Contact Name",
+    contactPhone: "Contact Number",
+    noContacts: "No contacts added yet.",
+    manageContacts: "Manage Contacts",
+    save: "Save",
+    remove: "Remove",
+    minContactReq: "Add at least one emergency contact",
+    callGuardian: "Call Guardian",
+    callNoContact: "No contacts to call"
   },
   hi: {
     appName: 'ZindaHu AI',
@@ -52,7 +62,7 @@ export const TRANSLATIONS = {
     panic: "आपातकाल",
     confirmPanic: "तुरंत संपर्कों को सूचित करें?",
     goodMorning: "शुभ प्रभात!",
-    morningPrompt: "कृपया पुष्टि करें कि आप आज सुरक्षित हैं।",
+    morningPrompt: "कृपया पुष्टि करें कि आज आप सुरक्षित हैं।",
     soulScanner: "आत्मा स्कैनर",
     holdToScan: "उंगली से स्कैन करें",
     scanning: "आत्मा पैटर्न का विश्लेषण...",
@@ -62,7 +72,17 @@ export const TRANSLATIONS = {
     daysElapsed: "जीये गए दिन",
     daysRemaining: "शेष दिन (अनुमानित)",
     mementoMori: "जिंदगी का एक दिन और कम। आज को खास बनाएं!",
-    mementoMoriHi: "जीवन का एक दिन और कम हो गया। आज को खुल कर जीयें!"
+    mementoMoriHi: "जीवन का एक दिन और कम हो गया। आज को खुल कर जीयें!",
+    addContact: "आपातकालीन संपर्क जोड़ें",
+    contactName: "संपर्क का नाम",
+    contactPhone: "संपर्क नंबर",
+    noContacts: "कोई संपर्क नहीं जोड़ा गया।",
+    manageContacts: "संपर्क प्रबंधित करें",
+    save: "सहेजें",
+    remove: "हटाएं",
+    minContactReq: "कम से कम एक आपातकालीन संपर्क जोड़ें",
+    callGuardian: "अभिभावक को कॉल करें",
+    callNoContact: "कॉल करने के लिए कोई संपर्क नहीं है"
   }
 };
 
@@ -85,6 +105,26 @@ export const ICONS = {
   Clock: () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  Plus: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+    </svg>
+  ),
+  UserGroup: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  ),
+  Trash: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  ),
+  Phone: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
     </svg>
   )
 };
