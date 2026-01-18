@@ -1,4 +1,3 @@
-
 package com.zindahu.ai.ui.dashboard
 
 import android.content.Context
@@ -7,6 +6,7 @@ import android.os.VibrationEffect
 import android.os.Build
 import android.os.Vibrator
 import android.view.WindowManager
+import android.content.Intent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.zindahu.ai.databinding.ActivityMainBinding
@@ -21,9 +21,30 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Handle Morning Unlock Trigger to bypass lockscreen for mandatory safety check-in
-        if (intent.getStringExtra("TRIGGER_SOURCE") == "MORNING_UNLOCK") {
-            // Apply requested window flags to ensure visibility over the lockscreen
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        // Handle the intent that started this activity
+        handleSafetyIntent(intent)
+
+        setupObservers()
+        setupListeners()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Update the activity's intent and handle any safety triggers if activity is already running
+        setIntent(intent)
+        handleSafetyIntent(intent)
+    }
+
+    /**
+     * Checks if the activity was triggered by the morning unlock broadcast.
+     * If so, applies lockscreen bypass flags and triggers a strong vibration.
+     */
+    private fun handleSafetyIntent(intent: Intent?) {
+        if (intent?.getStringExtra("TRIGGER_SOURCE") == "MORNING_UNLOCK") {
+            // Apply window flags to ensure the safety check appears over the lockscreen
             window.addFlags(
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
                 WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
@@ -31,27 +52,32 @@ class MainActivity : AppCompatActivity() {
                 WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
             )
             
-            // Trigger a strong 500ms vibration alert to ensure the user notices the check-in requirement
-            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE))
+            // Trigger a strong 500ms vibration as requested to alert the user immediately
+            // We use getSystemService with explicitly defined Vibrator class for modern Android standards
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                getSystemService(Vibrator::class.java)
             } else {
                 @Suppress("DEPRECATION")
-                vibrator.vibrate(500)
+                getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            }
+
+            vibrator?.let {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // Amplitude of 255 ensures the vibration is at maximum strength
+                    it.vibrate(VibrationEffect.createOneShot(500, 255))
+                } else {
+                    @Suppress("DEPRECATION")
+                    it.vibrate(500)
+                }
             }
         }
-
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        setupObservers()
-        setupListeners()
     }
 
     private fun setupObservers() {
         viewModel.safetyStatus.observe(this) { status ->
             binding.statusText.text = status.name
-            // Note: In a production app, update UI colors based on status (e.g., Red for Emergency)
+            // In a production environment, this would also update the background color 
+            // and theme dynamically to indicate safety level (Green/Red).
         }
         
         viewModel.lastCheckInTime.observe(this) { time ->
@@ -62,7 +88,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupListeners() {
         binding.btnImAlive.setOnClickListener {
             viewModel.confirmAlive()
-            // Clear flags to resume normal power management after confirmation
+            // Reset window flags to allow standard lockscreen and power behavior after check-in
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             window.clearFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
         }

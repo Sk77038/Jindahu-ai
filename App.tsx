@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { UserProfile, Language, SafetyStatus, EmergencyContact } from './types';
 import { TRANSLATIONS, ICONS } from './constants';
 import { firebaseService } from './services/firebaseService';
-import { getSafetyInsight, getSoulAnalysis } from './services/geminiService';
+import { getSafetyInsight, getSoulAnalysis, getEmergencyReassurance } from './services/geminiService';
 
 const useBattery = () => {
   const [battery, setBattery] = useState<number | null>(null);
@@ -26,6 +26,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string>('--:--');
   const [aiInsight, setAiInsight] = useState<string>('');
+  const [aiReassurance, setAiReassurance] = useState<string>('');
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [showMorningForce, setShowMorningForce] = useState(false);
@@ -82,7 +83,7 @@ export default function App() {
     setIsAppLoaded(true);
   }, [isCheckInDue]);
 
-  // Life Clock Calculations - Real Work: Decrements as days pass
+  // Life Clock Calculations
   const life = useMemo(() => {
     if (!user) return { elapsed: 0, remaining: 0, percent: 0 };
     const dayMs = 1000 * 60 * 60 * 24;
@@ -118,7 +119,17 @@ export default function App() {
     if ('vibrate' in navigator) navigator.vibrate([20, 100]);
   };
 
-  const handlePanic = async () => {
+  const handlePanicInitiation = async () => {
+    if ('vibrate' in navigator) navigator.vibrate(80);
+    setAiReassurance(""); // Reset
+    setShowPanicConfirm(true);
+    
+    // Fetch calming Gemini reassurance while modal is open
+    const message = await getEmergencyReassurance(language);
+    setAiReassurance(message);
+  };
+
+  const handlePanicConfirm = async () => {
     if (!user) return;
     if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 500]);
     setStatus(SafetyStatus.EMERGENCY);
@@ -130,12 +141,8 @@ export default function App() {
       );
       loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
     } catch (e) { 
-      console.warn("GPS Access Denied or Timeout. Sending last known or null.");
+      console.warn("GPS Access Denied or Timeout.");
     }
-
-    // SIMULATED REAL WORK: Syncing emergency state and logging contact alerts
-    console.log(`%c [ALERT] BROADCASTING TO ${user.contacts.length} CONTACTS`, 'background: #dc2626; color: #fff; font-weight: bold; padding: 4px;');
-    user.contacts.forEach(c => console.log(`Sending SMS to ${c.name} (${c.phone}): SOS! ${user.name} is in danger. Location: ${loc ? `https://maps.google.com/?q=${loc.lat},${loc.lng}` : 'Unknown'}`));
 
     await firebaseService.syncToCloud(user.phone, {
       status: SafetyStatus.EMERGENCY,
@@ -153,15 +160,8 @@ export default function App() {
       return;
     }
     const primary = user.contacts[0];
-    // Sanitize number for URI
     const cleanPhone = primary.phone.replace(/\s/g, '');
-    
-    // EXPLICIT REQUIREMENT: Trigger 40ms vibration just before call
-    if ('vibrate' in navigator) {
-      navigator.vibrate(40);
-    }
-    
-    // Initiate system dialer
+    if ('vibrate' in navigator) navigator.vibrate(40);
     window.location.href = `tel:${cleanPhone}`;
   };
 
@@ -240,7 +240,6 @@ export default function App() {
     </div>
   );
 
-  // --- REGISTRATION SCREEN ---
   if (!user) return (
     <div className="max-w-md mx-auto h-screen bg-slate-900 text-white p-8 flex flex-col justify-center overflow-hidden relative">
       <div className="mb-10 text-center">
@@ -299,86 +298,90 @@ export default function App() {
     </div>
   );
 
-  // --- MAIN DASHBOARD ---
   return (
     <div className="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col relative overflow-hidden">
       
-      {/* Dynamic Guardian Manager Modal */}
-      {showContactsModal && (
-        <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-xl z-[2000] flex items-end p-4">
-          <div className="bg-white w-full rounded-[4rem] p-8 space-y-6 animate-slide-up max-h-[85vh] flex flex-col shadow-2xl">
-            <div className="flex justify-between items-center px-2">
-               <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{t.manageContacts}</h2>
-               <button onClick={() => { if ('vibrate' in navigator) navigator.vibrate(20); setShowContactsModal(false); }} className="bg-slate-100 p-3 rounded-full active:scale-90 transition-all text-slate-600">✕</button>
+      {/* SOS Confirmation Dialog */}
+      {showPanicConfirm && (
+        <div className="fixed inset-0 bg-slate-900/98 backdrop-blur-2xl z-[5000] flex items-end p-5">
+          <div className="bg-white w-full rounded-[4.5rem] p-12 space-y-12 animate-slide-up shadow-[0_0_100px_rgba(220,38,38,0.3)] border-t-[8px] border-red-500">
+            <div className="text-center">
+               <div className="w-24 h-24 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-10 animate-pulse border-8 border-red-50">
+                 <ICONS.Alert />
+               </div>
+               <h2 className="text-2xl font-black text-slate-900 tracking-tighter mb-4">Emergency Alert</h2>
+               <p className="text-slate-600 font-bold text-xl leading-tight opacity-90">
+                 {t.confirmPanic}
+               </p>
+               
+               <div className="mt-8 min-h-[80px]">
+                 {aiReassurance ? (
+                   <div className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 italic text-slate-500 text-sm font-medium animate-fade-in shadow-inner">
+                     <div className="flex items-center justify-center gap-2 mb-2">
+                       <span className="text-purple-500"><ICONS.Sparkles /></span>
+                       <span className="text-[10px] font-black uppercase tracking-widest">{t.aiSOSPrompt}</span>
+                     </div>
+                     "{aiReassurance}"
+                   </div>
+                 ) : (
+                   <div className="flex flex-col items-center gap-2 opacity-30">
+                     <div className="w-12 h-1 bg-slate-200 rounded-full animate-pulse"></div>
+                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.aiThinking}</span>
+                   </div>
+                 )}
+               </div>
             </div>
-            
-            <div className="flex-grow overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-              {user.contacts.length === 0 ? <p className="text-slate-400 text-center py-10 font-bold italic">{t.noContacts}</p> : 
-                user.contacts.map(c => (
-                  <div key={c.id} className="bg-slate-50 p-4 rounded-3xl flex justify-between items-center border border-slate-100 animate-slide-up">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-black text-sm">{c.name[0]}</div>
-                      <div><p className="font-black text-slate-800 text-sm">{c.name}</p><p className="text-[10px] text-slate-500 font-bold">{c.phone}</p></div>
-                    </div>
-                    <button onClick={() => manageContact('remove', c.id)} className="text-red-500 p-2 active:scale-75 transition-all"><ICONS.Trash /></button>
-                  </div>
-                ))}
+            <div className="space-y-5">
+              <button onClick={handlePanicConfirm} className="w-full bg-red-600 text-white py-8 rounded-[2.5rem] font-black text-2xl shadow-2xl shadow-red-200 active:scale-95 transition-all uppercase tracking-tighter">YES, ALERT GUARDIANS</button>
+              <button onClick={() => { if ('vibrate' in navigator) navigator.vibrate(20); setShowPanicConfirm(false); }} className="w-full bg-slate-100 text-slate-800 py-6 rounded-[2.5rem] font-black text-xl active:scale-95 transition-all uppercase opacity-60">Cancel</button>
             </div>
-
-            <div className="bg-slate-100 p-6 rounded-[3rem] space-y-3 border border-slate-200 shadow-inner">
-               <input value={tempContactName} onChange={e => setTempContactName(e.target.value)} type="text" placeholder={t.contactName} className="w-full p-4 bg-white rounded-2xl outline-none text-sm font-bold shadow-sm" />
-               <input value={tempContactPhone} onChange={e => setTempContactPhone(e.target.value)} type="tel" placeholder={t.contactPhone} className="w-full p-4 bg-white rounded-2xl outline-none text-sm font-bold shadow-sm" />
-               <button onClick={() => manageContact('add')} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black flex items-center justify-center gap-2 text-xs uppercase tracking-widest active:bg-black transition-colors"><ICONS.Plus /> {t.addContact}</button>
-            </div>
-            <button onClick={() => setShowContactsModal(false)} className="w-full bg-purple-600 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-sm shadow-lg shadow-purple-200 active:scale-95 transition-all">Done</button>
           </div>
         </div>
       )}
 
-      {/* Daily Reality Check (Memento Mori) Overlay */}
+      {/* Daily Reality Check */}
       {showMorningForce && (
         <div className="fixed inset-0 bg-slate-900 z-[3000] flex flex-col items-center justify-center p-8 text-center animate-fade-in">
            <div className="mb-4 w-16 h-1 bg-white/20 rounded-full"></div>
            <h1 className="text-4xl font-black text-white mb-3 tracking-tighter">{t.goodMorning}</h1>
            <p className="text-purple-400 font-black mb-12 text-lg px-2 leading-tight italic">{language === Language.HI ? t.mementoMoriHi : t.mementoMori}</p>
            
-           <div className="bg-white/5 border border-white/10 rounded-[4rem] p-10 mb-16 w-full shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+           <div className="bg-white/5 border border-white/10 rounded-[4rem] p-10 mb-16 w-full shadow-2xl relative overflow-hidden">
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-3">Legacy Meter</p>
-              <div className="flex justify-center items-end gap-1 mb-2">
-                 <span className="text-5xl font-black text-white tracking-tighter">{life.elapsed + 1}</span>
+              <div className="flex justify-center items-end gap-1 mb-2 text-white">
+                 <span className="text-5xl font-black tracking-tighter">{life.elapsed + 1}</span>
                  <span className="text-slate-500 font-bold mb-1">/ {user.predictedDays} days</span>
               </div>
-              <div className="w-full h-2.5 bg-white/10 rounded-full mt-4 overflow-hidden shadow-inner">
+              <div className="w-full h-2.5 bg-white/10 rounded-full mt-4 overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-[2000ms]" style={{ width: `${100 - life.percent}%` }}></div>
               </div>
            </div>
 
-           <button onClick={handleCheckIn} className="w-64 h-64 rounded-full bg-white text-green-600 shadow-[0_0_80px_rgba(255,255,255,0.15)] flex flex-col items-center justify-center p-8 border-[12px] border-green-50 animate-pulse active:scale-95 transition-all">
+           <button onClick={handleCheckIn} className="w-64 h-64 rounded-full bg-white text-green-600 shadow-2xl flex flex-col items-center justify-center p-8 border-[12px] border-green-50 animate-pulse active:scale-95 transition-all">
               <span className="text-3xl font-black leading-none uppercase tracking-tighter">{t.imAlive}</span>
               <div className="mt-3 w-1.5 h-1.5 bg-green-500 rounded-full"></div>
            </button>
         </div>
       )}
 
+      {/* Dashboard Header */}
       <header className="bg-white p-6 flex justify-between items-center border-b sticky top-0 z-[100] shadow-sm">
         <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 tracking-tighter">
           {status === SafetyStatus.SAFE ? <span className="text-green-600"><ICONS.ShieldCheck /></span> : <span className="text-red-600 animate-pulse"><ICONS.Alert /></span>}
           {t.appName}
         </h2>
         <div className="flex gap-3 items-center">
-           {/* Guardian Settings Button */}
+           {/* Contacts Management Button - Gated by showContactsModal state */}
            <button 
-             onClick={() => { if ('vibrate' in navigator) navigator.vibrate(20); setShowContactsModal(true); }} 
-             className="p-3 bg-slate-100 rounded-full text-slate-700 active:scale-90 transition-all shadow-sm hover:bg-slate-200"
+             onClick={() => { if ('vibrate' in navigator) navigator.vibrate(30); setShowContactsModal(true); }} 
+             className="p-3 bg-slate-100 rounded-full text-slate-700 active:scale-90 transition-all hover:bg-slate-200"
              aria-label={t.manageContacts}
            >
              <ICONS.UserGroup />
            </button>
-           {/* Language Toggle */}
            <button 
-             onClick={() => { if ('vibrate' in navigator) navigator.vibrate(30); setLanguage(l => l === Language.EN ? Language.HI : Language.EN); }} 
-             className="text-[10px] font-black bg-slate-900 text-white px-5 py-2 rounded-full uppercase tracking-tighter shadow-md active:scale-95 transition-all h-10 flex items-center"
+             onClick={() => { if ('vibrate' in navigator) navigator.vibrate(20); setLanguage(l => l === Language.EN ? Language.HI : Language.EN); }} 
+             className="text-[10px] font-black bg-slate-900 text-white px-5 py-2 rounded-full uppercase tracking-tighter shadow-md hover:bg-black transition-colors"
            >
              {language}
            </button>
@@ -386,8 +389,23 @@ export default function App() {
       </header>
 
       <main className="flex-grow p-6 space-y-6 overflow-y-auto pb-4">
-        {/* Legacy Watch - Real-time Life Clock */}
-        <div className="bg-white p-7 rounded-[3rem] shadow-sm border border-slate-100 relative group overflow-hidden">
+        {/* Gemini AI Dashboard Insight */}
+        <div className="bg-gradient-to-br from-indigo-50 to-white p-7 rounded-[3.5rem] border shadow-md flex gap-6 animate-fade-in relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
+          <div className="text-5xl drop-shadow-xl select-none">✨</div>
+          <div className="flex flex-col justify-center">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-purple-600"><ICONS.Sparkles /></span>
+              <p className="text-[9px] font-black text-purple-600 uppercase tracking-[0.2em]">{t.aiSafetyCoach}</p>
+            </div>
+            <p className="text-sm font-bold text-slate-800 leading-snug italic">
+              {aiInsight || t.aiThinking}
+            </p>
+          </div>
+        </div>
+
+        {/* Legacy Watch */}
+        <div className="bg-white p-7 rounded-[3rem] shadow-sm border border-slate-100">
           <div className="flex justify-between items-center mb-6">
              <div className="flex items-center gap-3 text-slate-800">
                 <ICONS.Clock />
@@ -395,7 +413,6 @@ export default function App() {
              </div>
              <span className="text-[9px] font-black bg-purple-50 text-purple-600 px-4 py-1.5 rounded-full border border-purple-100 uppercase">{user.initialSoulAge}</span>
           </div>
-          
           <div className="space-y-5">
              <div className="flex justify-between text-[11px] font-bold text-slate-500 uppercase tracking-tight">
                 <span>Lived: <b className="text-slate-900 text-sm ml-1">{life.elapsed}</b> days</span>
@@ -414,39 +431,28 @@ export default function App() {
           <p className="text-[10px] font-black uppercase opacity-50 mb-3 tracking-[0.3em]">{t.status}</p>
           <h3 className="text-5xl font-black mb-10 italic tracking-tighter">{status === SafetyStatus.SAFE ? t.safe : t.emergency}</h3>
           <div className="bg-white/5 rounded-[2.5rem] p-6 border border-white/10 backdrop-blur-sm shadow-inner">
-            <p className="text-[9px] font-bold uppercase text-slate-400 mb-2 tracking-widest">Next Bio-Verification In</p>
+            <p className="text-[9px] font-bold uppercase text-slate-400 mb-2 tracking-widest">Verification Checkpoint</p>
             <p className="text-4xl font-black tracking-tighter tabular-nums text-purple-400 drop-shadow-md">{timeRemaining}</p>
           </div>
         </div>
 
-        {/* The Heart of the App - Check-in Button */}
+        {/* Main Interaction Button */}
         <div className="flex justify-center py-6">
           <button 
             onClick={handleCheckIn}
             disabled={isSyncing}
             className={`w-64 h-64 rounded-full bg-white shadow-2xl transition-all active:scale-95 flex flex-col items-center justify-center p-8 border-[16px] 
-              ${isCheckInDue ? 'alive-btn-pulse border-orange-50' : 'border-slate-50'}
-              ${isSyncing ? 'opacity-50 grayscale' : 'hover:shadow-green-100/50'}
+              ${isCheckInDue ? 'alive-btn-pulse border-orange-50 shadow-orange-100/50' : 'border-slate-50 shadow-slate-200/50'}
+              ${isSyncing ? 'opacity-50 grayscale' : 'hover:scale-105'}
             `}
           >
             <span className={`text-3xl font-black leading-none text-center tracking-tighter uppercase ${status === SafetyStatus.SAFE ? 'text-green-600' : 'text-red-600'}`}>{t.imAlive}</span>
             <div className={`mt-6 h-1 w-12 rounded-full transition-all duration-500 ${isSyncing ? 'bg-purple-500 w-24' : 'bg-slate-100'}`}></div>
           </button>
         </div>
-
-        {/* AI Insight Card */}
-        {aiInsight && (
-          <div className="bg-white p-7 rounded-[3.5rem] border shadow-sm flex gap-6 animate-fade-in border-l-[8px] border-l-purple-500 hover:shadow-lg transition-shadow">
-             <div className="text-5xl drop-shadow-xl select-none">🛡️</div>
-             <div className="flex flex-col justify-center">
-                <p className="text-[9px] font-black text-purple-600 uppercase mb-2 tracking-[0.2em]">Safety Oracle</p>
-                <p className="text-sm font-bold text-slate-800 leading-snug italic tracking-tight">"{aiInsight}"</p>
-             </div>
-          </div>
-        )}
       </main>
 
-      {/* FOOTER ACTIONS - Unified Safety Controls */}
+      {/* Footer Safety Actions */}
       <footer className="p-6 pb-14 bg-white border-t sticky bottom-0 z-[100] safe-area-inset-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.03)] space-y-4">
         {user.contacts.length > 0 && (
           <button 
@@ -457,28 +463,40 @@ export default function App() {
             {t.callGuardian}: {user.contacts[0].name}
           </button>
         )}
-        
         <button 
-          onClick={() => { if ('vibrate' in navigator) navigator.vibrate(80); setShowPanicConfirm(true); }} 
-          className="w-full bg-red-600 text-white py-7 rounded-[3rem] font-black text-2xl shadow-2xl shadow-red-200 active:scale-[0.98] active:bg-red-700 transition-all uppercase tracking-tighter"
+          onClick={handlePanicInitiation}
+          className="w-full bg-red-600 text-white py-7 rounded-[3rem] font-black text-2xl shadow-2xl shadow-red-200 active:scale-[0.98] active:bg-red-700 transition-all uppercase tracking-tighter animate-pulse"
         >
           {t.panic}
         </button>
       </footer>
 
-      {/* SOS CONFIRMATION */}
-      {showPanicConfirm && (
-        <div className="fixed inset-0 bg-slate-900/98 backdrop-blur-2xl z-[5000] flex items-end p-5">
-          <div className="bg-white w-full rounded-[4.5rem] p-12 space-y-12 animate-slide-up shadow-[0_0_100px_rgba(220,38,38,0.3)]">
-            <div className="text-center">
-               <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce border-4 border-red-50"><ICONS.Alert /></div>
-               <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic">Broadcast SOS?</h2>
-               <p className="text-slate-500 font-bold text-xl mt-4 leading-tight opacity-80">{t.confirmPanic}</p>
+      {/* Contacts Management Modal */}
+      {showContactsModal && (
+        <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-xl z-[2000] flex items-end p-4">
+          <div className="bg-white w-full rounded-[4rem] p-8 space-y-6 animate-slide-up max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="flex justify-between items-center px-2">
+               <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{t.manageContacts}</h2>
+               <button onClick={() => setShowContactsModal(false)} className="bg-slate-100 p-3 rounded-full active:scale-90 text-slate-600">✕</button>
             </div>
-            <div className="space-y-5">
-              <button onClick={handlePanic} className="w-full bg-red-600 text-white py-8 rounded-[2.5rem] font-black text-2xl shadow-xl active:scale-95 transition-all uppercase tracking-tighter">YES, ALERT GUARDIANS</button>
-              <button onClick={() => setShowPanicConfirm(false)} className="w-full bg-slate-100 text-slate-800 py-6 rounded-[2.5rem] font-black text-xl active:scale-95 transition-all uppercase opacity-60">Cancel</button>
+            <div className="flex-grow overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+              {user.contacts.length === 0 ? <p className="text-slate-400 text-center py-10 font-bold italic">{t.noContacts}</p> : 
+                user.contacts.map(c => (
+                  <div key={c.id} className="bg-slate-50 p-4 rounded-3xl flex justify-between items-center border border-slate-100 animate-slide-up">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-black text-sm">{c.name[0]}</div>
+                      <div><p className="font-black text-slate-800 text-sm">{c.name}</p><p className="text-[10px] text-slate-500 font-bold">{c.phone}</p></div>
+                    </div>
+                    <button onClick={() => manageContact('remove', c.id)} className="text-red-500 p-2 active:scale-75 transition-all"><ICONS.Trash /></button>
+                  </div>
+                ))}
             </div>
+            <div className="bg-slate-100 p-6 rounded-[3rem] space-y-3 border border-slate-200 shadow-inner">
+               <input value={tempContactName} onChange={e => setTempContactName(e.target.value)} type="text" placeholder={t.contactName} className="w-full p-4 bg-white rounded-2xl outline-none text-sm font-bold shadow-sm" />
+               <input value={tempContactPhone} onChange={e => setTempContactPhone(e.target.value)} type="tel" placeholder={t.contactPhone} className="w-full p-4 bg-white rounded-2xl outline-none text-sm font-bold shadow-sm" />
+               <button onClick={() => manageContact('add')} className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black flex items-center justify-center gap-2 text-xs active:bg-black transition-colors uppercase tracking-widest"><ICONS.Plus /> {t.addContact}</button>
+            </div>
+            <button onClick={() => setShowContactsModal(false)} className="w-full bg-purple-600 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-sm shadow-lg shadow-purple-200 active:scale-95 transition-all">Done</button>
           </div>
         </div>
       )}

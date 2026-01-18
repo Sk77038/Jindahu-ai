@@ -19,7 +19,7 @@ export const TRANSLATIONS = {
     phoneLabel: "Mobile Number",
     finish: "Activate Shield",
     panic: "PANIC",
-    confirmPanic: "Alert your contacts immediately?",
+    confirmPanic: "Are you sure you want to alert your contacts immediately?",
     goodMorning: "Good Morning!",
     morningPrompt: "Please confirm you are safe for today.",
     soulScanner: "Soul Scanner",
@@ -41,7 +41,10 @@ export const TRANSLATIONS = {
     remove: "Remove",
     minContactReq: "Add at least one emergency contact",
     callGuardian: "Call Guardian",
-    callNoContact: "No contacts to call"
+    callNoContact: "No contacts to call",
+    aiSafetyCoach: "AI Safety Shield",
+    aiThinking: "Analyzing risks...",
+    aiSOSPrompt: "Emergency AI Support Active"
   },
   hi: {
     appName: 'ZindaHu AI',
@@ -60,7 +63,7 @@ export const TRANSLATIONS = {
     phoneLabel: "मोबाइल नंबर",
     finish: "कवच सक्रिय करें",
     panic: "आपातकाल",
-    confirmPanic: "तुरंत संपर्कों को सूचित करें?",
+    confirmPanic: "क्या आप वाकई अपने संपर्कों को तुरंत सूचित करना चाहते हैं?",
     goodMorning: "शुभ प्रभात!",
     morningPrompt: "कृपया पुष्टि करें कि आज आप सुरक्षित हैं।",
     soulScanner: "आत्मा स्कैनर",
@@ -82,7 +85,10 @@ export const TRANSLATIONS = {
     remove: "हटाएं",
     minContactReq: "कम से कम एक आपातकालीन संपर्क जोड़ें",
     callGuardian: "अभिभावक को कॉल करें",
-    callNoContact: "कॉल करने के लिए कोई संपर्क नहीं है"
+    callNoContact: "कॉल करने के लिए कोई संपर्क नहीं है",
+    aiSafetyCoach: "AI सुरक्षा कवच",
+    aiThinking: "विश्लेषण हो रहा है...",
+    aiSOSPrompt: "आपातकालीन AI सहायता सक्रिय"
   }
 };
 
@@ -125,6 +131,11 @@ export const ICONS = {
   Phone: () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+    </svg>
+  ),
+  Sparkles: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.857L11 21l-2.286-6.857L1 12l7.714-2.857L11 3z" />
     </svg>
   )
 };

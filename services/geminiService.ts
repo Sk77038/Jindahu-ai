@@ -54,3 +54,17 @@ export async function getSafetyInsight(user: UserProfile) {
     return "Your safety is our priority.";
   }
 }
+
+export async function getEmergencyReassurance(language: string) {
+  try {
+    const ai = getAIClient();
+    if (!ai) return "Help is on the way.";
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `User is in an emergency state. Provide one extremely short, calming, and reassuring sentence. Language: ${language}.`,
+    });
+    return response.text || "Breathe. Help is starting to mobilize.";
+  } catch (error) {
+    return "Help is on the way. Stay calm.";
+  }
+}
