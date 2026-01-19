@@ -7,7 +7,7 @@
     <title>ZindaHu AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Non-destructive global process shim for browser-based SDK compatibility
+      // Ultimate browser shim for process.env
       window.process = window.process || {};
       window.process.env = window.process.env || {};
     </script>
@@ -49,13 +49,6 @@
         @keyframes slideUp {
             from { transform: translateY(30px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(0,0,0,0.1);
-            border-radius: 10px;
         }
     </style>
     <script type="importmap">
