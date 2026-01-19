@@ -5,25 +5,13 @@ import { LANGUAGE_NAME_MAP } from '../constants';
 
 /**
  * PRODUCTION GEMINI SERVICE
- * Uses defensive checks for API_KEY to ensure reliability on Vercel.
+ * Uses direct process.env.API_KEY access as required by SDK guidelines.
  */
-
-const getAI = () => {
-  // Safe access to process.env
-  const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : null;
-  if (!apiKey) {
-    console.error("Gemini API Key missing. Check Vercel/Environment Variables.");
-    return null;
-  }
-  return new GoogleGenAI({ apiKey });
-};
 
 /** 1. Registration Analysis */
 export async function getSoulAnalysis(name: string, language: string, age: string, medical: string) {
   try {
-    const ai = getAI();
-    if (!ai) return { soulAge: "Ancient Spirit", reading: "Setup pending...", predictedDays: 32000 };
-    
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[language] || 'English';
 
     const response = await ai.models.generateContent({
@@ -56,9 +44,7 @@ export async function getSoulAnalysis(name: string, language: string, age: strin
 /** 2. Morning Safety Insight */
 export async function getSafetyInsight(user: UserProfile) {
   try {
-    const ai = getAI();
-    if (!ai) return "Bhai, API key check karein Vercel settings mein.";
-    
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[user.language] || 'English';
     
     const response = await ai.models.generateContent({
@@ -79,9 +65,7 @@ export async function getSafetyInsight(user: UserProfile) {
 /** 3. TTS Voice Generation */
 export async function getMotivationalVoice(text: string, language: string) {
   try {
-    const ai = getAI();
-    if (!ai) return null;
-
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[language] || 'English';
 
     const response = await ai.models.generateContent({
@@ -107,9 +91,7 @@ export async function getMotivationalVoice(text: string, language: string) {
 /** 4. Dost AI Companion - Pro + Search */
 export async function getDostAiResponse(prompt: string, base64Image: string | null, user: UserProfile) {
   try {
-    const ai = getAI();
-    if (!ai) return "API missing. Verify your configuration.";
-    
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[user.language] || 'English';
     const parts: any[] = [{ text: `You are 'Dost AI', ${user.name}'s safety shield. 
     User: Blood ${user.bloodGroup}, Med: ${user.medicalConditions}.
@@ -146,9 +128,7 @@ export async function getDostAiResponse(prompt: string, base64Image: string | nu
 /** 5. Hospital Search - Maps Grounding */
 export async function getNearbyHospitals(lat: number, lng: number, language: string) {
   try {
-    const ai = getAI();
-    if (!ai) return "Setup pending.";
-    
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[language] || 'English';
 
     const response = await ai.models.generateContent({

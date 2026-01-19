@@ -83,8 +83,8 @@ export default function App() {
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = TRANSLATIONS[language] || TRANSLATIONS.en;
 
-  // Safe Environment Access
-  const isApiKeyConfigured = (typeof process !== 'undefined' && process.env) ? !!process.env.API_KEY : false;
+  // Key check logic - silent to avoid clutter unless error occurs
+  const isApiKeyConfigured = !!process.env.API_KEY;
 
   useEffect(() => {
     const profile = firebaseService.getLocalProfile();
@@ -284,9 +284,6 @@ export default function App() {
 
           <div className="mt-6 flex flex-col gap-4">
             <button onClick={() => setRegStep(2)} className="w-full bg-purple-600 py-6 rounded-3xl font-black text-xl shadow-2xl active:scale-95 transition-all hover:bg-purple-500">NEXT</button>
-            {!isApiKeyConfigured && (
-               <p className="text-[10px] text-red-500 font-bold text-center">API Key not found in Vercel settings.</p>
-            )}
             <div className="flex justify-center gap-4 text-[10px] font-black uppercase text-slate-500">
                <button onClick={() => setShowLegal('privacy')}>Privacy</button>
                <span>•</span>
@@ -308,7 +305,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Embedded Legal Modals for Reg screen */}
       {showLegal !== 'none' && (
         <div className="fixed inset-0 z-[20000] bg-white flex flex-col p-8 overflow-y-auto custom-scrollbar text-slate-900">
            <header className="flex justify-between items-center mb-10 sticky top-0 bg-white py-2 z-10">
@@ -397,7 +393,6 @@ export default function App() {
          <button onClick={() => setStatus(SafetyStatus.EMERGENCY)} className="w-full bg-red-600 text-white py-8 rounded-[3.5rem] font-black text-4xl shadow-2xl active:scale-95 uppercase tracking-tighter hover:bg-red-700 transition-colors">{t.panic}</button>
       </footer>
 
-      {/* Settings Modal Dashboard */}
       {showSettings && (
         <div className="fixed inset-0 z-[15000] bg-white flex flex-col animate-slide-up overflow-y-auto custom-scrollbar pb-24">
           <header className="p-6 border-b flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur-md z-10">
@@ -406,7 +401,6 @@ export default function App() {
           </header>
 
           <div className="p-6 space-y-8 animate-fade-in">
-            {/* User Profile Summary */}
             <div className="bg-slate-900 text-white p-8 rounded-[3rem] shadow-xl relative overflow-hidden group">
               <div className="flex items-center gap-4 relative z-10">
                 <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center font-black text-2xl uppercase shadow-inner">
@@ -418,14 +412,10 @@ export default function App() {
                 </div>
                 <div className="flex flex-col items-end gap-1">
                    <button onClick={() => setShowLegal('about')} className="text-purple-400 font-black text-[10px] uppercase underline hover:text-purple-300">About</button>
-                   <div className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase ${isApiKeyConfigured ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                      API: {isApiKeyConfigured ? 'Connected' : 'Missing'}
-                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Feature Access Grid */}
             <div className="grid grid-cols-2 gap-4">
               <button onClick={() => setShowGuardians(true)} className="bg-purple-50 p-6 rounded-[2.5rem] border border-purple-100 flex flex-col items-center gap-3 active:scale-95 transition-all hover:bg-purple-100">
                 <div className="p-3 bg-white rounded-xl shadow-sm"><ICONS.User /></div>
@@ -437,7 +427,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Advanced Safety Controls */}
             <section className="space-y-4">
               <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-2">{t.advSafety}</h4>
               <div className="space-y-2">
@@ -459,23 +448,11 @@ export default function App() {
               </div>
             </section>
 
-            {/* Legal & Support */}
-            <section className="space-y-2">
-              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-2">{t.legalHeading}</h4>
-              <button onClick={() => setShowLegal('terms')} className="w-full text-left bg-white p-6 rounded-[2rem] border border-slate-100 font-bold text-sm shadow-sm hover:bg-slate-50 transition-colors flex justify-between items-center">
-                 <span>{t.termsConditions}</span>
-              </button>
-              <button onClick={() => setShowLegal('privacy')} className="w-full text-left bg-white p-6 rounded-[2rem] border border-slate-100 font-bold text-sm shadow-sm hover:bg-slate-50 transition-colors flex justify-between items-center">
-                 <span>{t.privacyPolicy}</span>
-              </button>
-            </section>
-
             <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full p-6 text-red-600 font-black uppercase text-[10px] tracking-widest pt-4 opacity-50 hover:opacity-100 transition-opacity">{t.signOut}</button>
           </div>
         </div>
       )}
 
-      {/* Guardians Drawer */}
       {showGuardians && (
         <div className="fixed inset-0 z-[16000] bg-white flex flex-col animate-slide-up p-8">
            <header className="flex justify-between items-center mb-8">
@@ -504,7 +481,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Govt Help Drawer */}
       {showGovt && (
         <div className="fixed inset-0 z-[16000] bg-white flex flex-col animate-slide-up p-8">
            <header className="flex justify-between items-center mb-8">
@@ -525,7 +501,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Dost AI Modal */}
       {showDostAi && (
         <div className="fixed inset-0 z-[10000] bg-slate-950 flex flex-col animate-fade-in">
            <header className="p-6 bg-slate-900 text-white flex justify-between items-center border-b border-white/5 shadow-lg">
@@ -552,7 +527,6 @@ export default function App() {
         </div>
       )}
 
-      {/* SOS Strobe Pulse Overlay */}
       {status === SafetyStatus.EMERGENCY && (
         <div className="fixed inset-0 z-[11000] sos-bg-strobe flex flex-col p-8 text-white animate-fade-in">
            <div className="flex-grow flex flex-col items-center justify-center text-center space-y-10">
