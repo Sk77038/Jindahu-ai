@@ -1,9 +1,9 @@
 {
-  "name": "ZindaHu AI - Real-time Safety Shield",
-  "description": "Production-grade safety app with real-time Firebase synchronization and emergency GPS tracking.",
+  "name": "ZindaHu AI - Survival Shield",
+  "description": "Production-grade safety application with GPS tracking and Gemini intelligence.",
   "requestFramePermissions": [
     "geolocation",
-    "camera",
-    "microphone"
+    "microphone",
+    "camera"
   ]
 }

@@ -7,16 +7,12 @@
     <title>ZindaHu AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      /**
-       * Bulletproof Environment Shim
-       * Ensures 'process.env.API_KEY' is accessible globally.
-       */
-      (function() {
-        window.process = window.process || { env: {} };
-        if (typeof globalThis !== 'undefined') {
-          globalThis.process = window.process;
-        }
-      })();
+      // Global shim for process.env used by the SDK
+      window.process = window.process || { env: {} };
+      if (!window.process.env.API_KEY) {
+        // The platform usually injects this, but we ensure the object exists
+        window.process.env = window.process.env || {};
+      }
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -56,6 +52,13 @@
         @keyframes slideUp {
             from { transform: translateY(30px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #475569;
+          border-radius: 10px;
         }
     </style>
     <script type="importmap">
