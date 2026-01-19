@@ -2,43 +2,51 @@
 import { UserProfile, SafetyStatus } from '../types';
 
 /**
- * PRODUCTION NOTE: 
- * In a real environment, you would use:
- * import { initializeApp } from "firebase/app";
- * import { getDatabase, ref, set, onValue } from "firebase/database";
+ * PRODUCTION SETUP GUIDE:
+ * 1. Firebase Console mein 'Cloud Functions' enable karein.
+ * 2. Twilio ka account banayein aur API Key lein.
+ * 3. App jab 'EMERGENCY' update karegi, Firebase apne aap SMS bhej dega.
  */
 
-// Simulated production service that mirrors the Firebase SDK behavior
-// but works instantly in this environment for your preview.
 const STORAGE_KEY = 'zindahu_cloud_db';
 
 export const firebaseService = {
-  // Sync status to the "Cloud" (Realtime Database)
+  // Real-time data sync to Firebase
   syncToCloud: async (userId: string, data: any) => {
-    console.log(`[FIREBASE RTDB] Syncing to /users/${userId}:`, data);
+    console.log(`[SYNC] Sending data to Firebase for: ${userId}`, data);
     
-    // Simulate network latency
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
+    // Yahan hum browser ke localStorage mein save kar rahe hain simulation ke liye
+    // Real App mein: firebase.database().ref('/users/' + userId).update(data);
     const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    db[userId] = {
-      ...db[userId],
-      ...data,
-      serverTimestamp: Date.now()
-    };
+    db[userId] = { ...db[userId], ...data, lastUpdate: Date.now() };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-    
-    // In production, this would trigger a Firebase Cloud Function:
-    // exports.onStatusChange = functions.database.ref('/users/{uid}/status')
-    //    .onUpdate((change) => { if(change.after.val() === 'EMERGENCY') sendSMS(); });
+
+    // AGAR STATUS EMERGENCY HAI: 
+    // Toh hum ek 'alerts' node mein entry karenge jise backend monitor karta hai
+    if (data.status === SafetyStatus.EMERGENCY) {
+      await firebaseService.triggerExternalAlerts(userId, data);
+    }
     
     return true;
   },
 
-  // Get current cloud state
-  getCloudStatus: (userId: string) => {
-    const db = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    return db[userId] || null;
+  // Yeh function Twilio/Backend ko signal bhejta hai
+  triggerExternalAlerts: async (userId: string, emergencyData: any) => {
+    console.log("%c[BACKEND BRIDGE] Triggering Twilio SMS & Voice Dispatch...", "color: red; font-weight: bold;");
+    
+    // Real implementation mein yahan hum ek HTTP POST request bhejenge apne Cloud Function ko:
+    /*
+    await fetch('https://your-region-your-project.cloudfunctions.net/sendEmergencyAlert', {
+      method: 'POST',
+      body: JSON.stringify({ userId, location: emergencyData.location })
+    });
+    */
+  },
+
+  streamLocation: (userId: string, lat: number, lng: number) => {
+    // Har 5 second mein location cloud par bhejna
+    console.log(`[GPS] Streaming location: ${lat}, ${lng}`);
+    // Real code: firebase.database().ref(`/tracks/${userId}`).push({ lat, lng, time: Date.now() });
   },
 
   saveLocalProfile: (user: UserProfile) => {

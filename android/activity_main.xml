@@ -1,3 +1,4 @@
+
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -6,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="#F8FAFC">
 
-    <!-- Status Header -->
+    <!-- Status Header - Target of Pulse Animation -->
     <androidx.cardview.widget.CardView
         android:id="@+id/statusCard"
         android:layout_width="match_parent"
@@ -16,23 +17,31 @@
         app:cardElevation="8dp"
         app:layout_constraintTop_toTopOf="parent">
         
+        <!-- 
+          The pulse animation (Scale/Alpha) is triggered programmatically in MainActivity.kt
+          when SafetyStatus updates to ATTENTION (Orange Pulse) or EMERGENCY (Red Strobe).
+        -->
         <LinearLayout
+            android:id="@+id/statusContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="20dp"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:background="#1E1E1E"> <!-- Updated to default dark for Safe -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="CURRENT STATUS"
                 android:textSize="12sp"
                 android:textStyle="bold"
+                android:textColor="#FFFFFF"
                 android:alpha="0.6" />
             <TextView
                 android:id="@+id/statusText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Safe"
+                android:textColor="#FFFFFF"
                 android:textSize="28sp"
                 android:textStyle="black" />
         </LinearLayout>
