@@ -7,8 +7,10 @@
     <title>ZindaHu AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Crucial shim for browser environments like Vercel
-      window.process = window.process || { env: {} };
+      // Global process shim for browser-based SDK compatibility
+      if (typeof window.process === 'undefined') {
+        window.process = { env: {} };
+      }
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -19,49 +21,35 @@
             padding: 0;
             min-height: 100vh;
             background-color: #f8fafc;
+            overflow-x: hidden;
         }
         #root {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(147, 51, 234, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(147, 51, 234, 0); }
-        }
-        @keyframes status-pulse {
-            0% { border-color: rgba(220, 38, 38, 0.5); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
-            50% { border-color: rgba(220, 38, 38, 1); box-shadow: 0 0 20px 10px rgba(220, 38, 38, 0); }
-            100% { border-color: rgba(220, 38, 38, 0.5); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-        }
-        .alive-btn-pulse {
-            animation: pulse-ring 2s infinite;
-        }
-        .status-alert-pulse {
-            animation: status-pulse 1.5s infinite;
-        }
-        .sos-bg-strobe {
-            animation: sos-strobe 0.5s infinite;
+        @keyframes soul-pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6); }
+            70% { transform: scale(1.05); box-shadow: 0 0 40px 20px rgba(139, 92, 246, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
         }
         @keyframes sos-strobe {
-            0% { background-color: #dc2626; }
+            0% { background-color: #ef4444; }
             50% { background-color: #7f1d1d; }
-            100% { background-color: #dc2626; }
+            100% { background-color: #ef4444; }
         }
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-out;
+        .alive-btn-pulse {
+            animation: soul-pulse 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        .sos-active-bg {
+            animation: sos-strobe 0.4s infinite;
         }
         .animate-slide-up {
-            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
         @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         .custom-scrollbar::-webkit-scrollbar {
             width: 4px;
