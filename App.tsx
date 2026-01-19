@@ -79,6 +79,9 @@ export default function App() {
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = TRANSLATIONS[language] || TRANSLATIONS.en;
 
+  // Environment Verification
+  const isApiKeyConfigured = !!process.env.API_KEY;
+
   useEffect(() => {
     const profile = firebaseService.getLocalProfile();
     if (profile) {
@@ -274,7 +277,14 @@ export default function App() {
              ))}
           </div>
 
-          <button onClick={() => setRegStep(2)} className="w-full bg-purple-600 py-6 rounded-3xl font-black text-xl shadow-2xl active:scale-95 transition-all mt-6 hover:bg-purple-500">NEXT</button>
+          <div className="mt-6 flex flex-col gap-4">
+            <button onClick={() => setRegStep(2)} className="w-full bg-purple-600 py-6 rounded-3xl font-black text-xl shadow-2xl active:scale-95 transition-all hover:bg-purple-500">NEXT</button>
+            <div className="flex justify-center gap-4 text-[10px] font-black uppercase text-slate-500">
+               <button onClick={() => setShowLegal('privacy')}>Privacy</button>
+               <span>•</span>
+               <button onClick={() => setShowLegal('terms')}>Terms</button>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col items-center animate-fade-in">
@@ -287,6 +297,27 @@ export default function App() {
             <p className="mt-4 text-[10px] font-black uppercase">{isScanning ? `${scanProgress}%` : t.holdToScan}</p>
           </div>
           <button onClick={() => setRegStep(1)} className="mt-20 text-slate-500 font-black uppercase text-[10px] hover:text-white transition-colors">Back to Registration</button>
+        </div>
+      )}
+
+      {/* Embedded Legal Modals for Reg screen */}
+      {showLegal !== 'none' && (
+        <div className="fixed inset-0 z-[20000] bg-white flex flex-col p-8 overflow-y-auto custom-scrollbar text-slate-900">
+           <header className="flex justify-between items-center mb-10 sticky top-0 bg-white py-2 z-10">
+              <h3 className="text-2xl font-black uppercase tracking-tighter">
+                {showLegal === 'terms' ? t.termsConditions : showLegal === 'privacy' ? t.privacyPolicy : t.aboutApp}
+              </h3>
+              <button onClick={() => setShowLegal('none')} className="p-3 bg-slate-100 rounded-full text-slate-900"><ICONS.Close /></button>
+           </header>
+           <div className="prose prose-slate pb-10">
+              <p className="leading-relaxed text-lg font-bold text-slate-800 mb-6 border-l-4 border-purple-500 pl-4 bg-purple-50 py-4 rounded-r-xl">
+                {showLegal === 'terms' ? t.termsBody : showLegal === 'privacy' ? t.privacyBody : t.aboutBody}
+              </p>
+              <div className="bg-slate-50 p-8 rounded-[2rem] text-sm text-slate-600 space-y-4 border border-slate-100">
+                <p className="font-bold text-slate-900 uppercase tracking-widest text-[9px]">Official Policy Notice</p>
+                <p>{t.legalBody}</p>
+              </div>
+           </div>
         </div>
       )}
     </div>
@@ -319,7 +350,7 @@ export default function App() {
               </div>
            </div>
            <p className="text-xl font-bold italic leading-relaxed relative z-10 transition-all duration-500">
-             "{aiInsight || (language === 'hi' ? "Dost, sync karo aur din shuru karo." : "Friend, sync and start your day.")}"
+             "{aiInsight || (language === 'hi' ? "Dost, sync karo aur apna din shuru karo." : "Friend, sync and start your day.")}"
            </p>
            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 blur-[60px] rounded-full -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-700"></div>
         </div>
@@ -381,7 +412,13 @@ export default function App() {
                   <h3 className="text-xl font-bold">{user?.name}</h3>
                   <p className="text-[10px] opacity-50 uppercase tracking-widest">{user?.initialSoulAge}</p>
                 </div>
-                <button onClick={() => setShowLegal('about')} className="text-purple-400 font-black text-[10px] uppercase underline hover:text-purple-300">About</button>
+                <div className="flex flex-col items-end gap-1">
+                   <button onClick={() => setShowLegal('about')} className="text-purple-400 font-black text-[10px] uppercase underline hover:text-purple-300">About</button>
+                   {/* API Status Debug Mode */}
+                   <div className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase ${isApiKeyConfigured ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                      API: {isApiKeyConfigured ? 'Connected' : 'Missing'}
+                   </div>
+                </div>
               </div>
               <div className="absolute bottom-0 right-0 w-24 h-24 bg-purple-500/10 blur-3xl -mb-10 -mr-10"></div>
             </div>

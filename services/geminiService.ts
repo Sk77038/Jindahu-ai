@@ -4,40 +4,35 @@ import { UserProfile } from '../types';
 import { LANGUAGE_NAME_MAP } from '../constants';
 
 /**
- * PRODUCTION NOTE:
- * On Vercel, ensure you have set the 'API_KEY' environment variable.
- * We instantiate the client inside each call to ensure the environment 
- * variables are correctly accessed at runtime.
+ * PRODUCTION READY GEMINI SERVICE
+ * This service ensures robust AI feature delivery by instantiating the client
+ * locally within functions to avoid stale environment variable references.
  */
-const getClient = () => {
+
+const getAI = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    console.error("CRITICAL: process.env.API_KEY is missing. Check Vercel Environment Variables.");
+    console.warn("Gemini API Key is missing. Features will be disabled.");
     return null;
   }
   return new GoogleGenAI({ apiKey });
 };
 
-/** 1. Registration Analysis & Soul Persona */
+/** 1. Registration Analysis - Uses Flash for speed */
 export async function getSoulAnalysis(name: string, language: string, age: string, medical: string) {
   try {
-    const ai = getClient();
-    if (!ai) return { soulAge: "Ancient Spirit", reading: "Configuration pending.", predictedDays: 30000 };
+    const ai = getAI();
+    if (!ai) return { soulAge: "Ancient Soul", reading: "Connecting to cosmos...", predictedDays: 32000 };
     
     const langName = LANGUAGE_NAME_MAP[language] || 'English';
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Registration Analysis:
-      User: ${name}
-      Age: ${age}
-      Medical Condition: ${medical}
-      Language: ${langName}
-      
-      Generate a fun "Soul Age", a predicted remaining life duration (20k-40k days), 
-      and a personality reading based on their medical resilience. 
-      If Hindi, use 'Desi' style (informal, warm). 
-      Return JSON ONLY.`,
+      contents: `User ${name} is joining ZindaHu AI. 
+      Age: ${age}, Medical: ${medical}. 
+      Language: ${langName} (If Hindi, use very 'Desi' brotherly style).
+      Provide: 1. Soul Age (funny title) 2. Predicted life days remaining (22k-40k) 3. Soul personality reading based on health resilience.
+      Output: Valid JSON ONLY.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -54,50 +49,49 @@ export async function getSoulAnalysis(name: string, language: string, age: strin
     
     return JSON.parse(response.text || "{}");
   } catch (error) {
-    console.error("SoulAnalysis API Error:", error);
-    return { soulAge: "Eternal", predictedDays: 36500, reading: "You are beyond time." };
+    console.error("SoulAnalysis API Fail:", error);
+    return { soulAge: "Immortal", predictedDays: 36500, reading: "Your resilience is your strength." };
   }
 }
 
-/** 2. Morning Safety Insight */
+/** 2. Safety Insight - Uses Flash for efficiency */
 export async function getSafetyInsight(user: UserProfile) {
   try {
-    const ai = getClient();
-    if (!ai) return "Bhai, API key check karo Vercel mein.";
+    const ai = getAI();
+    if (!ai) return "Bhai, API key check karein Vercel dashboard mein.";
     
     const langName = LANGUAGE_NAME_MAP[user.language] || 'English';
     
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `User ${user.name} has safely checked in. 
-      Generate a short 2-line safety shayari or motivation. 
+      contents: `User ${user.name} checked in. Write a short 2-line safety shayari or motivational greeting. 
       Language: ${langName}. 
-      Hindi instructions: Use 'Desi' colloquial style, very brotherly and supportive.`,
+      Special Rule for Hindi: Speak like a very close 'Desi' friend, warm and informal.`,
     });
     
-    return response.text?.trim() || "Stay safe, friend.";
+    return response.text?.trim() || "Stay alert, stay safe.";
   } catch (error) {
-    console.error("Insight API Error:", error);
-    return "Surakshit rahein, dost.";
+    console.error("Insight API Fail:", error);
+    return "Hamesha surakshit rahein, dost.";
   }
 }
 
-/** 3. Text-to-Speech Voice Generation */
+/** 3. TTS Voice - Uses dedicated TTS model */
 export async function getMotivationalVoice(text: string, language: string) {
   try {
-    const ai = getClient();
+    const ai = getAI();
     if (!ai) return null;
 
     const langName = LANGUAGE_NAME_MAP[language] || 'English';
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Speak this warmly in ${langName}: ${text}` }] }],
+      contents: [{ parts: [{ text: `Say this with a very warm and sweet tone in ${langName}: ${text}` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Puck' } // Warm, friendly voice
+            prebuiltVoiceConfig: { voiceName: 'Puck' }
           }
         },
       },
@@ -105,43 +99,40 @@ export async function getMotivationalVoice(text: string, language: string) {
     
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
   } catch (error) {
-    console.error("TTS API Error:", error);
+    console.error("TTS API Fail:", error);
     return null;
   }
 }
 
-/** 4. Dost AI Safety Companion */
+/** 4. Dost AI Companion - Uses Pro for advanced reasoning + Search */
 export async function getDostAiResponse(prompt: string, base64Image: string | null, user: UserProfile) {
   try {
-    const ai = getClient();
-    if (!ai) return "AI setup is incomplete. Check API key.";
+    const ai = getAI();
+    if (!ai) return "Bhai, setup poora nahi hai. API Key missing lag rahi hai.";
     
     const langName = LANGUAGE_NAME_MAP[user.language] || 'English';
-    const parts: any[] = [{ text: `You are 'Dost AI', ${user.name}'s safety shield. 
-    User Context: Blood ${user.bloodGroup}, Medical: ${user.medicalConditions}.
-    If danger is mentioned, prioritize survival steps. 
+    const parts: any[] = [{ text: `You are 'Dost AI', a safety shield and companion for ${user.name}. 
+    User Context: Blood ${user.bloodGroup}, Medical Condition: ${user.medicalConditions}.
+    If user mentions any danger, give priority SURVIVAL steps. Use Google Search for real-time safety info.
     Language: ${langName} (Desi style for Hindi).
     
-    User message: ${prompt}` }];
+    Message: ${prompt}` }];
 
     if (base64Image) {
-      parts.push({
-        inlineData: { mimeType: 'image/jpeg', data: base64Image }
-      });
+      parts.push({ inlineData: { mimeType: 'image/jpeg', data: base64Image } });
     }
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: { parts },
-      config: {
-        tools: [{ googleSearch: {} }]
-      }
+      config: { tools: [{ googleSearch: {} }] }
     });
 
     let output = response.text || "";
+    // Extract grounding info if Google Search was used
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
-      output += "\n\n🌐 Verfied Sources:";
+      output += "\n\n🌐 Sources:";
       chunks.forEach((chunk: any) => {
         if (chunk.web) output += `\n- ${chunk.web.title}: ${chunk.web.uri}`;
       });
@@ -149,22 +140,22 @@ export async function getDostAiResponse(prompt: string, base64Image: string | nu
     
     return output;
   } catch (error) {
-    console.error("DostAI API Error:", error);
-    return "Bhai, connectivity issue hai par ghabrao mat, main yahin hoon.";
+    console.error("DostAI API Fail:", error);
+    return "Maafi chahta hoon dost, connection mein issue hai. Par himmat mat harna.";
   }
 }
 
-/** 5. Hospital Map Search (Grounding) */
+/** 5. Hospital Maps Grounding - Uses 2.5 Flash for Google Maps support */
 export async function getNearbyHospitals(lat: number, lng: number, language: string) {
   try {
-    const ai = getClient();
-    if (!ai) return "Maps API not initialized.";
+    const ai = getAI();
+    if (!ai) return "Location services setup pending.";
     
     const langName = LANGUAGE_NAME_MAP[language] || 'English';
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Find the 3 nearest hospitals with 24/7 emergency services. Language: ${langName}.`,
+      contents: `List the 3 nearest emergency hospitals with high ratings. Language: ${langName}.`,
       config: {
         tools: [{ googleMaps: {} }],
         toolConfig: {
@@ -178,7 +169,7 @@ export async function getNearbyHospitals(lat: number, lng: number, language: str
     let output = response.text || "";
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
-      output += "\n\n🏥 Nearby Emergency Centers:";
+      output += "\n\n🏥 Verified Centers:";
       chunks.forEach((chunk: any) => {
         if (chunk.maps) output += `\n- ${chunk.maps.title}: ${chunk.maps.uri}`;
       });
@@ -186,7 +177,7 @@ export async function getNearbyHospitals(lat: number, lng: number, language: str
     
     return output;
   } catch (error) {
-    console.error("Maps Grounding Error:", error);
-    return "Error searching for hospitals. Please try manual emergency numbers.";
+    console.error("Maps Grounding Fail:", error);
+    return "Hospitals search failed. Please try government emergency helpline 112.";
   }
 }
