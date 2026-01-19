@@ -7,9 +7,16 @@
     <title>ZindaHu AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Ultimate browser shim for process.env
-      window.process = window.process || {};
-      window.process.env = window.process.env || {};
+      /**
+       * Bulletproof Environment Shim
+       * Ensures 'process.env.API_KEY' is accessible globally.
+       */
+      (function() {
+        window.process = window.process || { env: {} };
+        if (typeof globalThis !== 'undefined') {
+          globalThis.process = window.process;
+        }
+      })();
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');

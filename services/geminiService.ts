@@ -5,19 +5,18 @@ import { LANGUAGE_NAME_MAP } from '../constants';
 
 /**
  * PRODUCTION GEMINI SERVICE
- * Directly uses process.env.API_KEY as per the @google/genai requirement.
+ * Uses direct process.env.API_KEY access as required.
  */
 
 export async function getSoulAnalysis(name: string, language: string, age: string, medical: string) {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[language] || 'English';
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Registration Data: ${name}, ${age}, Medical: ${medical}. 
-      Task: Create a unique 'Soul Age' title and reading. 
-      Language: ${langName}. Format: JSON.`,
+      contents: `Registration Context: User ${name}, Age ${age}, Med: ${medical}. 
+      Task: Return a 'Soul Age' title and reading in ${langName}. Format: JSON.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -33,37 +32,37 @@ export async function getSoulAnalysis(name: string, language: string, age: strin
     });
     return JSON.parse(response.text || "{}");
   } catch (error) {
-    console.error("Gemini SoulAnalysis Error:", error);
-    return { soulAge: "Strong Soul", predictedDays: 35000, reading: "Your spirit is resilient and ready for the journey." };
+    console.error("Gemini Error:", error);
+    return { soulAge: "Ancient Spirit", predictedDays: 36000, reading: "Your energy is timeless." };
   }
 }
 
 export async function getSafetyInsight(user: UserProfile) {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[user.language] || 'English';
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `User ${user.name} safe check-in. Provide a 1-line motivational shayari in ${langName}.`,
+      contents: `Generate a 1-line motivational safety greeting for ${user.name} in ${langName}.`,
     });
-    return response.text?.trim() || "Stay safe, stay bold.";
+    return response.text?.trim() || "Stay alert, stay safe.";
   } catch (error) {
-    console.error("Gemini Insight Error:", error);
-    return "Aapki suraksha hi hamari priority hai.";
+    console.error("Gemini Error:", error);
+    return "Surakshit rahein, hamesha.";
   }
 }
 
 export async function getMotivationalVoice(text: string, language: string) {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[language] || 'English';
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Say in ${langName} with warm heart: ${text}` }] }],
+      contents: [{ parts: [{ text: `Say warmly in ${langName}: ${text}` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } },
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } }
         },
       },
     });
@@ -76,49 +75,63 @@ export async function getMotivationalVoice(text: string, language: string) {
 
 export async function getDostAiResponse(prompt: string, user: UserProfile) {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[user.language] || 'English';
+    
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `You are 'Dost AI', protecting ${user.name} (Blood: ${user.bloodGroup}). 
-      Task: Answer the user's safety query. Tone: Informal/Brotherly. 
-      Language: ${langName}.
-      Message: ${prompt}`,
-      config: { tools: [{ googleSearch: {} }] }
+      contents: `You are 'Dost AI', a protective companion for ${user.name}.
+      Language: ${langName}. Tone: Friendly Desi.
+      Topic: Safety, survival, and general help.
+      Query: ${prompt}`,
+      config: {
+        tools: [{ googleSearch: {} }]
+      }
     });
-    let output = response.text || "Sun raha hoon bhai.";
+
+    let output = response.text || "Main sun raha hoon bhai.";
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
-      output += "\n\n🌐 Verification Sources:";
-      chunks.forEach((c: any) => { if (c.web) output += `\n- ${c.web.title}: ${c.web.uri}`; });
+      output += "\n\n🌐 Verification Links:";
+      chunks.forEach((chunk: any) => {
+        if (chunk.web) output += `\n- ${chunk.web.title}: ${chunk.web.uri}`;
+      });
     }
     return output;
   } catch (error) {
-    console.error("Gemini DostAI Error:", error);
-    return "Bhai, net thoda slow hai, par main hamesha saath hoon.";
+    console.error("Gemini Chat Error:", error);
+    return "Bhai, server thoda busy hai. Tab tak apna khyal rakho!";
   }
 }
 
 export async function getNearbyHospitals(lat: number, lng: number, language: string) {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[language] || 'English';
+    
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Find best hospitals near me. Language: ${langName}.`,
+      contents: `Find nearest best hospitals for emergency assistance. Use local language: ${langName}.`,
       config: {
         tools: [{ googleMaps: {} }],
-        toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } }
+        toolConfig: {
+          retrievalConfig: {
+            latLng: { latitude: lat, longitude: lng }
+          }
+        }
       },
     });
-    let output = response.text || "Nearby hospitals:";
+
+    let output = response.text || "Yahan kuch hospitals hain:";
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
-      chunks.forEach((c: any) => { if (c.maps) output += `\n- ${c.maps.title}: ${c.maps.uri}`; });
+      chunks.forEach((chunk: any) => {
+        if (chunk.maps) output += `\n- ${chunk.maps.title}: ${chunk.maps.uri}`;
+      });
     }
     return output;
   } catch (error) {
     console.error("Gemini Maps Error:", error);
-    return "Hospital details not found. Call 112 immediately.";
+    return "Hospital info nahi mil pa raha. Call 112 for immediate help!";
   }
 }
