@@ -13,10 +13,14 @@ import {
 
 // --- Helpers ---
 function decodeBase64(base64: string) {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-  return bytes;
+  try {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+    return bytes;
+  } catch (e) {
+    return new Uint8Array(0);
+  }
 }
 
 async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
@@ -79,8 +83,8 @@ export default function App() {
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = TRANSLATIONS[language] || TRANSLATIONS.en;
 
-  // Environment Verification
-  const isApiKeyConfigured = !!process.env.API_KEY;
+  // Safe Environment Access
+  const isApiKeyConfigured = (typeof process !== 'undefined' && process.env) ? !!process.env.API_KEY : false;
 
   useEffect(() => {
     const profile = firebaseService.getLocalProfile();
@@ -113,8 +117,9 @@ export default function App() {
 
   const playVoice = async (base64: string) => {
     try {
-      if (!audioContextRef.current) audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+      if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       const bytes = decodeBase64(base64);
+      if (bytes.length === 0) return;
       const buffer = await decodeAudioData(bytes, audioContextRef.current, 24000, 1);
       const source = audioContextRef.current.createBufferSource();
       source.buffer = buffer;
@@ -279,6 +284,9 @@ export default function App() {
 
           <div className="mt-6 flex flex-col gap-4">
             <button onClick={() => setRegStep(2)} className="w-full bg-purple-600 py-6 rounded-3xl font-black text-xl shadow-2xl active:scale-95 transition-all hover:bg-purple-500">NEXT</button>
+            {!isApiKeyConfigured && (
+               <p className="text-[10px] text-red-500 font-bold text-center">API Key not found in Vercel settings.</p>
+            )}
             <div className="flex justify-center gap-4 text-[10px] font-black uppercase text-slate-500">
                <button onClick={() => setShowLegal('privacy')}>Privacy</button>
                <span>•</span>
@@ -313,10 +321,6 @@ export default function App() {
               <p className="leading-relaxed text-lg font-bold text-slate-800 mb-6 border-l-4 border-purple-500 pl-4 bg-purple-50 py-4 rounded-r-xl">
                 {showLegal === 'terms' ? t.termsBody : showLegal === 'privacy' ? t.privacyBody : t.aboutBody}
               </p>
-              <div className="bg-slate-50 p-8 rounded-[2rem] text-sm text-slate-600 space-y-4 border border-slate-100">
-                <p className="font-bold text-slate-900 uppercase tracking-widest text-[9px]">Official Policy Notice</p>
-                <p>{t.legalBody}</p>
-              </div>
            </div>
         </div>
       )}
@@ -406,7 +410,7 @@ export default function App() {
             <div className="bg-slate-900 text-white p-8 rounded-[3rem] shadow-xl relative overflow-hidden group">
               <div className="flex items-center gap-4 relative z-10">
                 <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center font-black text-2xl uppercase shadow-inner">
-                  {user?.name[0]}
+                  {user?.name?.[0] || 'U'}
                 </div>
                 <div className="flex-grow">
                   <h3 className="text-xl font-bold">{user?.name}</h3>
@@ -414,13 +418,11 @@ export default function App() {
                 </div>
                 <div className="flex flex-col items-end gap-1">
                    <button onClick={() => setShowLegal('about')} className="text-purple-400 font-black text-[10px] uppercase underline hover:text-purple-300">About</button>
-                   {/* API Status Debug Mode */}
                    <div className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase ${isApiKeyConfigured ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                       API: {isApiKeyConfigured ? 'Connected' : 'Missing'}
                    </div>
                 </div>
               </div>
-              <div className="absolute bottom-0 right-0 w-24 h-24 bg-purple-500/10 blur-3xl -mb-10 -mr-10"></div>
             </div>
 
             {/* Feature Access Grid */}
@@ -462,11 +464,9 @@ export default function App() {
               <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-2">{t.legalHeading}</h4>
               <button onClick={() => setShowLegal('terms')} className="w-full text-left bg-white p-6 rounded-[2rem] border border-slate-100 font-bold text-sm shadow-sm hover:bg-slate-50 transition-colors flex justify-between items-center">
                  <span>{t.termsConditions}</span>
-                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
               <button onClick={() => setShowLegal('privacy')} className="w-full text-left bg-white p-6 rounded-[2rem] border border-slate-100 font-bold text-sm shadow-sm hover:bg-slate-50 transition-colors flex justify-between items-center">
                  <span>{t.privacyPolicy}</span>
-                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
             </section>
 
@@ -500,7 +500,6 @@ export default function App() {
                    <button onClick={() => removeContact(c.id)} className="p-3 text-red-500 bg-red-50 rounded-2xl active:bg-red-100 hover:bg-red-200 transition-colors"><ICONS.Trash /></button>
                 </div>
               ))}
-              {user?.contacts.length === 0 && <p className="text-center text-slate-400 font-bold mt-10">Add guardians to stay protected.</p>}
            </div>
         </div>
       )}
@@ -520,36 +519,8 @@ export default function App() {
                       <p className="font-black text-lg tracking-tighter text-slate-700">{h.name}</p>
                       <p className="text-purple-600 font-black text-xl">{h.number}</p>
                    </div>
-                   <div className="p-2 bg-white rounded-xl shadow-sm text-slate-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                   </div>
                 </button>
               ))}
-           </div>
-        </div>
-      )}
-
-      {/* Legal/Terms Modal */}
-      {showLegal !== 'none' && (
-        <div className="fixed inset-0 z-[20000] bg-white flex flex-col animate-slide-right p-8 overflow-y-auto custom-scrollbar">
-           <header className="flex justify-between items-center mb-10 sticky top-0 bg-white py-2 z-10">
-              <h3 className="text-2xl font-black uppercase tracking-tighter">
-                {showLegal === 'terms' ? t.termsConditions : showLegal === 'privacy' ? t.privacyPolicy : t.aboutApp}
-              </h3>
-              <button onClick={() => setShowLegal('none')} className="p-3 bg-slate-100 rounded-full"><ICONS.Close /></button>
-           </header>
-           <div className="prose prose-slate pb-10">
-              <p className="leading-relaxed text-lg font-bold text-slate-800 mb-6 border-l-4 border-purple-500 pl-4 bg-purple-50 py-4 rounded-r-xl">
-                {showLegal === 'terms' ? t.termsBody : showLegal === 'privacy' ? t.privacyBody : t.aboutBody}
-              </p>
-              <div className="bg-slate-50 p-8 rounded-[2rem] text-sm text-slate-600 space-y-4 border border-slate-100">
-                <p className="font-bold text-slate-900 uppercase tracking-widest text-[9px]">Official Policy Notice</p>
-                <p>{t.legalBody}</p>
-                <div className="space-y-4 mt-8 text-xs font-medium">
-                   <div className="flex gap-4"><div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">✓</div><p><strong>Safe Mode:</strong> Your location is only tracked when the 'SOS' status is active.</p></div>
-                   <div className="flex gap-4"><div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">✓</div><p><strong>Medical Data:</strong> Vitals and conditions are stored using local storage encryption for offline access.</p></div>
-                </div>
-              </div>
            </div>
         </div>
       )}
@@ -593,14 +564,10 @@ export default function App() {
                     <div><p className="text-[10px] opacity-50 uppercase font-black">Name</p><p className="font-black text-2xl uppercase tracking-tighter">{user?.name}</p></div>
                     <div><p className="text-[10px] opacity-50 uppercase font-black">Blood</p><p className="font-black text-2xl text-red-400">{user?.bloodGroup}</p></div>
                  </div>
-                 <div className="pt-2 border-t border-white/10">
-                   <p className="text-[10px] opacity-50 uppercase font-black">Medical Condition</p>
-                   <p className="font-bold text-sm leading-tight mt-1">{user?.medicalConditions || "No critical issues reported"}</p>
-                 </div>
               </div>
            </div>
            <div className="space-y-4 pt-10 pb-12">
-              {user?.contacts.length > 0 && (
+              {user?.contacts?.[0] && (
                 <button onClick={() => window.location.href=`tel:${user.contacts[0].phone}`} className="w-full bg-white text-red-600 py-8 rounded-[3rem] font-black text-2xl shadow-2xl active:scale-95 transition-all">CALL {user.contacts[0].name.toUpperCase()}</button>
               )}
               <button onClick={() => window.location.href=`tel:112`} className="w-full bg-slate-900 text-white py-6 rounded-[3rem] font-black text-xl border border-white/20 shadow-2xl active:scale-95">CALL 112</button>
