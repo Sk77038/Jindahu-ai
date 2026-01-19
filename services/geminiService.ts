@@ -5,10 +5,10 @@ import { LANGUAGE_NAME_MAP } from '../constants';
 
 /**
  * PRODUCTION GEMINI SERVICE
- * Uses direct process.env.API_KEY access as required by SDK guidelines.
+ * Directly initializes GoogleGenAI using process.env.API_KEY inside each call
+ * to ensure we grab the latest environment variables from Vercel/Native.
  */
 
-/** 1. Registration Analysis */
 export async function getSoulAnalysis(name: string, language: string, age: string, medical: string) {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -17,9 +17,9 @@ export async function getSoulAnalysis(name: string, language: string, age: strin
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `User ${name} (Age ${age}) medical condition: ${medical}. 
-      Generate: 1. A unique Soul Age (funny/deep) 2. Predicted remaining life days (22,000 to 40,000) 3. Personality reading based on health resilience. 
-      Language: ${langName}. If Hindi, use 'Desi' colloquial style (warm, brotherly).
-      Return JSON ONLY.`,
+      Task: Generate 1. Unique Soul Age title 2. Predicted remaining life days (22k-40k) 3. Personality reading.
+      Language: ${langName}. If Hindi, use informal 'Desi' brotherly style.
+      Output: JSON ONLY.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -37,11 +37,10 @@ export async function getSoulAnalysis(name: string, language: string, age: strin
     return JSON.parse(response.text || "{}");
   } catch (error) {
     console.error("SoulAnalysis API Error:", error);
-    return { soulAge: "Immortal", predictedDays: 36500, reading: "Your energy is eternal." };
+    return { soulAge: "Ancient Soul", predictedDays: 35000, reading: "Your energy transcends technical errors." };
   }
 }
 
-/** 2. Morning Safety Insight */
 export async function getSafetyInsight(user: UserProfile) {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -49,20 +48,17 @@ export async function getSafetyInsight(user: UserProfile) {
     
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `User ${user.name} checked in safely. 
-      Write a short 2-line safety shayari or motivational greeting. 
-      Language: ${langName}. 
-      Hindi Instruction: Use informal 'Desi' brotherly style.`,
+      contents: `User ${user.name} checked in safely. Provide a 2-line safety motivational shayari/greeting. 
+      Language: ${langName}. Use informal brotherly tone for Hindi.`,
     });
     
-    return response.text?.trim() || "Stay alert, stay safe.";
+    return response.text?.trim() || "Stay safe and stay strong.";
   } catch (error) {
     console.error("Insight API Error:", error);
-    return "Surakshit rahein, dost.";
+    return "Aapki suraksha hi hamari kamyabi hai.";
   }
 }
 
-/** 3. TTS Voice Generation */
 export async function getMotivationalVoice(text: string, language: string) {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -70,7 +66,7 @@ export async function getMotivationalVoice(text: string, language: string) {
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Speak warmly in ${langName}: ${text}` }] }],
+      contents: [{ parts: [{ text: `Say this warmly in ${langName}: ${text}` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: {
@@ -88,16 +84,16 @@ export async function getMotivationalVoice(text: string, language: string) {
   }
 }
 
-/** 4. Dost AI Companion - Pro + Search */
 export async function getDostAiResponse(prompt: string, base64Image: string | null, user: UserProfile) {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const langName = LANGUAGE_NAME_MAP[user.language] || 'English';
+    
     const parts: any[] = [{ text: `You are 'Dost AI', ${user.name}'s safety shield. 
-    User: Blood ${user.bloodGroup}, Med: ${user.medicalConditions}.
-    If danger mentioned, provide survival steps. Use Google Search for news/safety.
-    Language: ${langName} (Desi style for Hindi).
-    User: ${prompt}` }];
+    Context: Blood ${user.bloodGroup}, Medical: ${user.medicalConditions}.
+    If user is in danger, prioritize emergency steps. Use Google Search for facts.
+    Language: ${langName}. Tone: Desi Brother/Friend.
+    User Message: ${prompt}` }];
 
     if (base64Image) {
       parts.push({ inlineData: { mimeType: 'image/jpeg', data: base64Image } });
@@ -109,23 +105,25 @@ export async function getDostAiResponse(prompt: string, base64Image: string | nu
       config: { tools: [{ googleSearch: {} }] }
     });
 
-    let output = response.text || "";
+    let output = response.text || "No response received.";
+    
+    // Extract Search Grounding Links
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
-      output += "\n\n🌐 Grounded Info:";
+      output += "\n\n🌐 Grounded Sources:";
       chunks.forEach((chunk: any) => {
         if (chunk.web) output += `\n- ${chunk.web.title}: ${chunk.web.uri}`;
       });
     }
     
     return output;
-  } catch (error) {
+  } catch (error: any) {
     console.error("DostAI API Error:", error);
-    return "Bhai, connection slow hai par himmat mat harna.";
+    if (error.message?.includes("API_KEY_INVALID")) return "Error: API Key is invalid. Check Vercel Environment Variables.";
+    return "Bhai, connection slow hai. Par main yahi hoon.";
   }
 }
 
-/** 5. Hospital Search - Maps Grounding */
 export async function getNearbyHospitals(lat: number, lng: number, language: string) {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -133,7 +131,7 @@ export async function getNearbyHospitals(lat: number, lng: number, language: str
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Nearest best hospitals for emergencies. Language: ${langName}.`,
+      contents: `Find 3 nearest top-rated hospitals for emergency. Language: ${langName}.`,
       config: {
         tools: [{ googleMaps: {} }],
         toolConfig: {
@@ -147,7 +145,7 @@ export async function getNearbyHospitals(lat: number, lng: number, language: str
     let output = response.text || "";
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
-      output += "\n\n🏥 Map Results:";
+      output += "\n\n🏥 Map Links:";
       chunks.forEach((chunk: any) => {
         if (chunk.maps) output += `\n- ${chunk.maps.title}: ${chunk.maps.uri}`;
       });
@@ -156,6 +154,6 @@ export async function getNearbyHospitals(lat: number, lng: number, language: str
     return output;
   } catch (error) {
     console.error("Maps API Error:", error);
-    return "Manual check suggested: call 112.";
+    return "Error finding hospitals. Please dial 112 manually.";
   }
 }

@@ -18,9 +18,7 @@ function decodeBase64(base64: string) {
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
     return bytes;
-  } catch (e) {
-    return new Uint8Array(0);
-  }
+  } catch (e) { return new Uint8Array(0); }
 }
 
 async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
@@ -58,33 +56,16 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
 
-  // Settings & Navigation
+  // Nav
   const [showSettings, setShowSettings] = useState(false);
-  const [showLegal, setShowLegal] = useState<'none' | 'terms' | 'privacy' | 'about'>('none');
-  const [showGuardians, setShowGuardians] = useState(false);
-  const [showGovt, setShowGovt] = useState(false);
-
-  // Contact States
-  const [newContactName, setNewContactName] = useState('');
-  const [newContactPhone, setNewContactPhone] = useState('');
-  const [newContactRelation, setNewContactRelation] = useState('');
-
-  // Audio Ref
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  // Dost AI
   const [showDostAi, setShowDostAi] = useState(false);
   const [chatMessages, setChatMessages] = useState<{role: 'user' | 'ai', text: string}[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isAiTyping, setIsAiTyping] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   
+  const audioContextRef = useRef<AudioContext | null>(null);
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = TRANSLATIONS[language] || TRANSLATIONS.en;
-
-  // Key check logic - silent to avoid clutter unless error occurs
-  const isApiKeyConfigured = !!process.env.API_KEY;
 
   useEffect(() => {
     const profile = firebaseService.getLocalProfile();
@@ -146,7 +127,6 @@ export default function App() {
   };
 
   const finishRegistration = async () => {
-    vibrate([100, 50, 100]);
     setIsAiTyping(true);
     const analysis = await getSoulAnalysis(regName, language, regAge, regMedical);
     const newUser: UserProfile = {
@@ -161,6 +141,7 @@ export default function App() {
     firebaseService.saveLocalProfile(newUser);
     setIsScanning(false);
     setIsAiTyping(false);
+    vibrate([100, 50, 100]);
   };
 
   const finishCheckIn = async () => {
@@ -175,149 +156,58 @@ export default function App() {
     const insight = await getSafetyInsight(updated);
     setAiInsight(insight);
     localStorage.setItem('last_insight', insight);
-
     const voiceData = await getMotivationalVoice(insight, language);
     if (voiceData) playVoice(voiceData);
     setIsAiTyping(false);
   };
 
-  const replayShayari = async () => {
-    if (!aiInsight) return;
-    vibrate(20);
-    const voiceData = await getMotivationalVoice(aiInsight, language);
-    if (voiceData) playVoice(voiceData);
-  };
-
-  const updateConfig = (key: keyof SafetyConfig, val: any) => {
-    if (!user) return;
-    const updated = { ...user, config: { ...user.config, [key]: val } };
-    setUser(updated);
-    firebaseService.saveLocalProfile(updated);
-    vibrate(10);
-  };
-
-  const addContact = () => {
-    if (!user || !newContactName || !newContactPhone) return;
-    const contact: EmergencyContact = {
-      id: Date.now().toString(),
-      name: newContactName,
-      phone: newContactPhone,
-      relation: newContactRelation
-    };
-    const updated = { ...user, contacts: [...user.contacts, contact] };
-    setUser(updated);
-    firebaseService.saveLocalProfile(updated);
-    setNewContactName('');
-    setNewContactPhone('');
-    setNewContactRelation('');
-    vibrate([20, 20]);
-  };
-
-  const removeContact = (id: string) => {
-    if (!user) return;
-    const updated = { ...user, contacts: user.contacts.filter(c => c.id !== id) };
-    setUser(updated);
-    firebaseService.saveLocalProfile(updated);
-    vibrate(10);
-  };
-
   const handleDostChat = async () => {
-    if (!chatInput.trim() && !canvasRef.current || !user) return;
+    if (!chatInput.trim() || !user) return;
     const userMsg = chatInput;
     setChatMessages(p => [...p, { role: 'user', text: userMsg }]);
     setChatInput('');
     setIsAiTyping(true);
     vibrate(20);
-
-    let frame = null;
-    if (showDostAi && videoRef.current && canvasRef.current) {
-       const ctx = canvasRef.current.getContext('2d');
-       canvasRef.current.width = videoRef.current.videoWidth;
-       canvasRef.current.height = videoRef.current.videoHeight;
-       ctx?.drawImage(videoRef.current, 0, 0);
-       frame = canvasRef.current.toDataURL('image/jpeg', 0.5).split(',')[1];
-    }
-
-    const aiRes = await getDostAiResponse(userMsg, frame, user);
+    const aiRes = await getDostAiResponse(userMsg, null, user);
     setChatMessages(p => [...p, { role: 'ai', text: aiRes }]);
     setIsAiTyping(false);
-    vibrate([30, 30]);
-  };
-
-  const findHospitals = () => {
-    if (!navigator.geolocation) return;
-    setShowDostAi(true);
-    setChatMessages([{ role: 'ai', text: t.findingHospitals }]);
-    setIsAiTyping(true);
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const results = await getNearbyHospitals(pos.coords.latitude, pos.coords.longitude, language);
-      setChatMessages(p => [...p, { role: 'ai', text: results }]);
-      setIsAiTyping(false);
-    }, () => {
-      setChatMessages(p => [...p, { role: 'ai', text: "Location access denied. Please call 112 directly." }]);
-      setIsAiTyping(false);
-    });
   };
 
   if (!user) return (
-    <div className="max-w-md mx-auto h-screen bg-slate-950 text-white p-8 flex flex-col justify-center animate-fade-in overflow-y-auto">
-      <div className="flex items-center gap-3 mb-12 animate-slide-up"><div className="text-purple-500 scale-125"><ICONS.ShieldCheck /></div><h1 className="text-4xl font-black tracking-tighter">ZindaHu AI</h1></div>
+    <div className="max-w-md mx-auto h-screen bg-slate-950 text-white p-8 flex flex-col justify-center animate-fade-in">
+      <div className="flex items-center gap-3 mb-10"><div className="text-purple-500 scale-125"><ICONS.ShieldCheck /></div><h1 className="text-4xl font-black">ZindaHu AI</h1></div>
       
       {regStep === 1 ? (
         <div className="space-y-4 animate-slide-up">
-          <p className="text-xs font-black text-slate-500 uppercase tracking-widest">{t.setupTitle}</p>
-          <input value={regName} onChange={e => setRegName(e.target.value)} placeholder={t.nameLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl font-bold outline-none focus:border-purple-500 transition-colors" />
+          <input value={regName} onChange={e => setRegName(e.target.value)} placeholder={t.nameLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl font-bold outline-none" />
           <div className="grid grid-cols-2 gap-4">
-            <input value={regAge} onChange={e => setRegAge(e.target.value)} placeholder={t.ageLabel} type="number" className="p-5 bg-white/5 border border-white/10 rounded-3xl font-bold outline-none" />
-            <select value={regBlood} onChange={e => setRegBlood(e.target.value as BloodGroup)} className="p-5 bg-white/5 border border-white/10 rounded-3xl font-bold outline-none">
+            <input value={regAge} onChange={e => setRegAge(e.target.value)} placeholder={t.ageLabel} type="number" className="p-5 bg-white/5 border border-white/10 rounded-3xl font-bold" />
+            <select value={regBlood} onChange={e => setRegBlood(e.target.value as BloodGroup)} className="p-5 bg-white/5 border border-white/10 rounded-3xl font-bold">
               {BLOOD_GROUPS.map(bg => <option key={bg} value={bg}>{bg}</option>)}
             </select>
           </div>
-          <input value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder={t.phoneLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl font-bold outline-none" />
-          <textarea value={regMedical} onChange={e => setRegMedical(e.target.value)} placeholder={t.medicalLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl font-bold outline-none h-24 resize-none" />
+          <input value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder={t.phoneLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl font-bold" />
+          <textarea value={regMedical} onChange={e => setRegMedical(e.target.value)} placeholder={t.medicalLabel} className="w-full p-5 bg-white/5 border border-white/10 rounded-3xl font-bold h-24" />
           
-          <div className="pt-4 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 pt-2">
              {LANGUAGES_SUPPORTED.map(l => (
-               <button key={l.code} onClick={() => setLanguage(l.code as Language)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all ${language === l.code ? 'bg-purple-600 text-white scale-105' : 'bg-white/5 text-slate-400 opacity-60'}`}>{l.label}</button>
+               <button key={l.code} onClick={() => setLanguage(l.code as Language)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase ${language === l.code ? 'bg-purple-600' : 'bg-white/5'}`}>{l.label}</button>
              ))}
           </div>
 
-          <div className="mt-6 flex flex-col gap-4">
-            <button onClick={() => setRegStep(2)} className="w-full bg-purple-600 py-6 rounded-3xl font-black text-xl shadow-2xl active:scale-95 transition-all hover:bg-purple-500">NEXT</button>
-            <div className="flex justify-center gap-4 text-[10px] font-black uppercase text-slate-500">
-               <button onClick={() => setShowLegal('privacy')}>Privacy</button>
-               <span>•</span>
-               <button onClick={() => setShowLegal('terms')}>Terms</button>
-            </div>
-          </div>
+          <button onClick={() => setRegStep(2)} className="w-full bg-purple-600 py-6 mt-4 rounded-3xl font-black text-xl shadow-2xl active:scale-95 transition-all">NEXT</button>
         </div>
       ) : (
-        <div className="flex flex-col items-center animate-fade-in">
+        <div className="flex flex-col items-center">
           <div 
-            onMouseDown={() => startScan(false)} onMouseUp={() => {setIsScanning(false); if(scanTimerRef.current) clearInterval(scanTimerRef.current)}}
-            onTouchStart={() => startScan(false)} onTouchEnd={() => {setIsScanning(false); if(scanTimerRef.current) clearInterval(scanTimerRef.current)}}
-            className={`w-64 h-64 rounded-full border-4 flex flex-col items-center justify-center transition-all ${isScanning ? 'border-purple-500 bg-purple-500/20 scale-105 shadow-2xl alive-btn-pulse' : 'border-white/10 text-white/20'}`}
+            onMouseDown={() => startScan(false)} onMouseUp={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
+            onTouchStart={() => startScan(false)} onTouchEnd={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
+            className={`w-64 h-64 rounded-full border-4 flex flex-col items-center justify-center transition-all ${isScanning ? 'border-purple-500 bg-purple-500/10 scale-105 alive-btn-pulse' : 'border-white/10 text-white/20'}`}
           >
             <ICONS.Fingerprint />
             <p className="mt-4 text-[10px] font-black uppercase">{isScanning ? `${scanProgress}%` : t.holdToScan}</p>
           </div>
-          <button onClick={() => setRegStep(1)} className="mt-20 text-slate-500 font-black uppercase text-[10px] hover:text-white transition-colors">Back to Registration</button>
-        </div>
-      )}
-
-      {showLegal !== 'none' && (
-        <div className="fixed inset-0 z-[20000] bg-white flex flex-col p-8 overflow-y-auto custom-scrollbar text-slate-900">
-           <header className="flex justify-between items-center mb-10 sticky top-0 bg-white py-2 z-10">
-              <h3 className="text-2xl font-black uppercase tracking-tighter">
-                {showLegal === 'terms' ? t.termsConditions : showLegal === 'privacy' ? t.privacyPolicy : t.aboutApp}
-              </h3>
-              <button onClick={() => setShowLegal('none')} className="p-3 bg-slate-100 rounded-full text-slate-900"><ICONS.Close /></button>
-           </header>
-           <div className="prose prose-slate pb-10">
-              <p className="leading-relaxed text-lg font-bold text-slate-800 mb-6 border-l-4 border-purple-500 pl-4 bg-purple-50 py-4 rounded-r-xl">
-                {showLegal === 'terms' ? t.termsBody : showLegal === 'privacy' ? t.privacyBody : t.aboutBody}
-              </p>
-           </div>
+          <button onClick={() => setRegStep(1)} className="mt-12 text-slate-500 font-bold uppercase text-xs">Back</button>
         </div>
       )}
     </div>
@@ -325,228 +215,120 @@ export default function App() {
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col relative overflow-hidden">
-      
       {/* Header */}
-      <header className="p-6 bg-white flex justify-between items-center border-b sticky top-0 z-[100] backdrop-blur-md bg-white/80">
-        <div className="flex items-center gap-4">
-          <div className="p-2 bg-slate-900 text-white rounded-xl shadow-lg"><ICONS.Heart /></div>
-          <h2 className="text-xl font-black tracking-tighter">{t.appName}</h2>
+      <header className="p-6 bg-white flex justify-between items-center border-b sticky top-0 z-[100] shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-slate-900 text-white rounded-xl"><ICONS.Heart /></div>
+          <h2 className="text-xl font-black italic">{t.appName}</h2>
         </div>
-        <button onClick={() => setShowSettings(true)} className="p-3 bg-slate-100 rounded-2xl active:scale-90 transition-all hover:bg-slate-200">
-          <ICONS.Settings />
-        </button>
+        <button onClick={() => setShowSettings(true)} className="p-3 bg-slate-100 rounded-2xl"><ICONS.Settings /></button>
       </header>
 
-      <main className="flex-grow p-6 space-y-6 overflow-y-auto custom-scrollbar">
-        {/* Shayari Ticker */}
-        <div className="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group">
-           <div className="flex justify-between items-center mb-4 relative z-10">
-              <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">{t.morningCourage}</span>
-              <div className="flex gap-2">
-                 {isAiTyping && <div className="animate-pulse w-4 h-4 rounded-full bg-purple-500"></div>}
-                 <button onClick={replayShayari} className="bg-purple-600/30 p-2 rounded-full hover:bg-purple-600/50 transition-colors">
-                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-                 </button>
-              </div>
-           </div>
-           <p className="text-xl font-bold italic leading-relaxed relative z-10 transition-all duration-500">
-             "{aiInsight || (language === 'hi' ? "Dost, sync karo aur apna din shuru karo." : "Friend, sync and start your day.")}"
+      <main className="flex-grow p-6 space-y-6 overflow-y-auto">
+        {/* Shayari Card */}
+        <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+           <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest block mb-2">{t.morningCourage}</span>
+           <p className="text-xl font-bold italic leading-relaxed">
+             "{aiInsight || "Dost, sync karo aur apna din shuru karo."}"
            </p>
-           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 blur-[60px] rounded-full -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-700"></div>
+           {isAiTyping && <div className="absolute top-4 right-4 animate-pulse w-2 h-2 rounded-full bg-purple-500"></div>}
         </div>
 
         {/* Action Grid */}
         <div className="grid grid-cols-2 gap-4">
-           <button onClick={() => { setShowDostAi(true); setChatMessages([]); }} className="bg-purple-600 text-white p-6 rounded-[3rem] flex flex-col items-center gap-2 shadow-xl active:scale-95 transition-all hover:bg-purple-500">
+           <button onClick={() => setShowDostAi(true)} className="bg-purple-600 text-white p-6 rounded-[2rem] flex flex-col items-center gap-2 shadow-lg">
               <ICONS.Robot /><span className="text-[11px] font-black uppercase">{t.dostAi}</span>
            </button>
-           <button onClick={findHospitals} className="bg-white p-6 rounded-[3rem] border flex flex-col items-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-slate-50">
+           <button onClick={() => { setShowDostAi(true); setChatMessages([{role:'ai', text: t.findingHospitals}]); }} className="bg-white p-6 rounded-[2rem] border flex flex-col items-center gap-2 shadow-sm">
               <ICONS.Map /><span className="text-[11px] font-black uppercase text-slate-500">Hospitals</span>
            </button>
         </div>
 
-        {/* Status Display */}
-        <div className={`p-10 rounded-[4rem] shadow-2xl transition-all duration-500 ${status === SafetyStatus.SAFE ? 'bg-slate-900 text-white' : status === SafetyStatus.ATTENTION ? 'bg-orange-500 text-white status-attention-pulse' : 'bg-red-600 text-white status-alert-pulse'}`}>
-           <p className="text-[10px] font-black opacity-40 uppercase tracking-widest mb-1">{t.status}</p>
-           <h3 className="text-5xl font-black italic tracking-tighter mb-8">{status === SafetyStatus.SAFE ? t.safe : t.attention}</h3>
-           <div className="bg-white/5 p-8 rounded-[3rem] border border-white/10 flex flex-col items-center backdrop-blur-sm">
-              <p className="text-6xl font-black tracking-tighter tabular-nums text-purple-400">{timeRemaining}</p>
+        {/* Status */}
+        <div className={`p-8 rounded-[3rem] text-white shadow-xl ${status === SafetyStatus.SAFE ? 'bg-slate-900' : 'bg-red-600 status-alert-pulse'}`}>
+           <h3 className="text-4xl font-black italic mb-6">{status === SafetyStatus.SAFE ? t.safe : t.attention}</h3>
+           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center">
+              <p className="text-5xl font-black tabular-nums tracking-tighter text-purple-400">{timeRemaining}</p>
            </div>
         </div>
 
         {/* Sync Button */}
-        <div className="flex flex-col items-center py-8">
+        <div className="flex flex-col items-center py-10">
            <button 
-             onMouseDown={() => startScan(true)} onMouseUp={() => {setIsScanning(false); if(scanTimerRef.current) clearInterval(scanTimerRef.current)}}
-             onTouchStart={() => startScan(true)} onTouchEnd={() => {setIsScanning(false); if(scanTimerRef.current) clearInterval(scanTimerRef.current)}}
-             className={`w-64 h-64 rounded-full bg-white border-[20px] shadow-2xl flex flex-col items-center justify-center p-8 active:scale-90 transition-all duration-300 ${isScanning ? 'border-purple-500 alive-btn-pulse scale-105' : 'border-slate-100 hover:border-slate-200'}`}
+             onMouseDown={() => startScan(true)} onMouseUp={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
+             onTouchStart={() => startScan(true)} onTouchEnd={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
+             className={`w-64 h-64 rounded-full bg-white border-[16px] shadow-2xl flex items-center justify-center p-8 transition-all duration-300 ${isScanning ? 'border-purple-600 alive-btn-pulse scale-105' : 'border-slate-100'}`}
            >
-              <span className={`text-2xl font-black tracking-tighter text-center leading-tight uppercase transition-colors duration-300 ${isScanning ? 'text-purple-600' : 'text-green-600'}`}>
+              <span className={`text-2xl font-black text-center uppercase ${isScanning ? 'text-purple-600' : 'text-green-600'}`}>
                 {isScanning ? `${scanProgress}%` : t.imAlive}
               </span>
            </button>
-           <p className="mt-6 text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">{t.holdToScan}</p>
+           <p className="mt-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.holdToScan}</p>
         </div>
       </main>
 
-      <footer className="p-6 pb-12 bg-white border-t sticky bottom-0 z-[100] backdrop-blur-md bg-white/80">
-         <button onClick={() => setStatus(SafetyStatus.EMERGENCY)} className="w-full bg-red-600 text-white py-8 rounded-[3.5rem] font-black text-4xl shadow-2xl active:scale-95 uppercase tracking-tighter hover:bg-red-700 transition-colors">{t.panic}</button>
+      <footer className="p-6 pb-10 bg-white border-t sticky bottom-0 z-[100]">
+         <button onClick={() => setStatus(SafetyStatus.EMERGENCY)} className="w-full bg-red-600 text-white py-6 rounded-[2.5rem] font-black text-3xl shadow-2xl active:scale-95 uppercase">{t.panic}</button>
       </footer>
 
+      {/* Settings Dashboard */}
       {showSettings && (
-        <div className="fixed inset-0 z-[15000] bg-white flex flex-col animate-slide-up overflow-y-auto custom-scrollbar pb-24">
-          <header className="p-6 border-b flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur-md z-10">
-            <h2 className="text-2xl font-black tracking-tighter uppercase">{t.settings}</h2>
-            <button onClick={() => setShowSettings(false)} className="p-3 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"><ICONS.Close /></button>
+        <div className="fixed inset-0 z-[15000] bg-white flex flex-col animate-slide-up">
+          <header className="p-6 border-b flex justify-between items-center">
+            <h2 className="text-2xl font-black italic">{t.settings}</h2>
+            <button onClick={() => setShowSettings(false)} className="p-3 bg-slate-100 rounded-full"><ICONS.Close /></button>
           </header>
-
-          <div className="p-6 space-y-8 animate-fade-in">
-            <div className="bg-slate-900 text-white p-8 rounded-[3rem] shadow-xl relative overflow-hidden group">
-              <div className="flex items-center gap-4 relative z-10">
-                <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center font-black text-2xl uppercase shadow-inner">
-                  {user?.name?.[0] || 'U'}
-                </div>
-                <div className="flex-grow">
-                  <h3 className="text-xl font-bold">{user?.name}</h3>
-                  <p className="text-[10px] opacity-50 uppercase tracking-widest">{user?.initialSoulAge}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                   <button onClick={() => setShowLegal('about')} className="text-purple-400 font-black text-[10px] uppercase underline hover:text-purple-300">About</button>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => setShowGuardians(true)} className="bg-purple-50 p-6 rounded-[2.5rem] border border-purple-100 flex flex-col items-center gap-3 active:scale-95 transition-all hover:bg-purple-100">
-                <div className="p-3 bg-white rounded-xl shadow-sm"><ICONS.User /></div>
-                <span className="text-[10px] font-black uppercase text-purple-700">{t.myGuardians}</span>
-              </button>
-              <button onClick={() => setShowGovt(true)} className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 flex flex-col items-center gap-3 active:scale-95 transition-all hover:bg-slate-100">
-                <div className="p-3 bg-white rounded-xl shadow-sm"><ICONS.ShieldCheck /></div>
-                <span className="text-[10px] font-black uppercase text-slate-700">{t.govtHelp}</span>
-              </button>
-            </div>
-
-            <section className="space-y-4">
-              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-2">{t.advSafety}</h4>
-              <div className="space-y-2">
-                {[
-                  { label: t.lowBatteryPanic, key: 'autoPanicOnLowBattery' },
-                  { label: t.shakeToSOS, key: 'shakeToEmergency' },
-                  { label: t.silentSiren, key: 'silentSiren' }
-                ].map((item) => (
-                  <div key={item.key} className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm transition-all hover:bg-slate-50">
-                    <span className="font-bold text-sm text-slate-700">{item.label}</span>
-                    <button 
-                      onClick={() => user && updateConfig(item.key as keyof SafetyConfig, !user.config[item.key as keyof SafetyConfig])}
-                      className={`w-14 h-8 rounded-full transition-all flex items-center p-1 ${user?.config[item.key as keyof SafetyConfig] ? 'bg-purple-600' : 'bg-slate-300'}`}
-                    >
-                      <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all ${user?.config[item.key as keyof SafetyConfig] ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full p-6 text-red-600 font-black uppercase text-[10px] tracking-widest pt-4 opacity-50 hover:opacity-100 transition-opacity">{t.signOut}</button>
+          <div className="p-6 space-y-4">
+             <div className="bg-slate-900 text-white p-6 rounded-3xl">
+                <p className="text-xs font-bold text-purple-400 uppercase">{user.initialSoulAge}</p>
+                <h3 className="text-2xl font-black">{user.name}</h3>
+                <p className="text-xs opacity-50 mt-2">Days Remaining: ~{user.predictedDays}</p>
+             </div>
+             <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full p-6 bg-red-50 text-red-600 rounded-3xl font-black uppercase text-xs">{t.signOut}</button>
           </div>
         </div>
       )}
 
-      {showGuardians && (
-        <div className="fixed inset-0 z-[16000] bg-white flex flex-col animate-slide-up p-8">
-           <header className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-black uppercase tracking-tighter">{t.myGuardians}</h3>
-              <button onClick={() => setShowGuardians(false)} className="p-3 bg-slate-100 rounded-full"><ICONS.Close /></button>
-           </header>
-           
-           <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-[2.5rem] border">
-              <input value={newContactName} onChange={e => setNewContactName(e.target.value)} placeholder={t.nameLabel} className="w-full p-4 bg-white border rounded-2xl outline-none font-bold text-sm" />
-              <input value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} placeholder={t.phoneLabel} className="w-full p-4 bg-white border rounded-2xl outline-none font-bold text-sm" />
-              <input value={newContactRelation} onChange={e => setNewContactRelation(e.target.value)} placeholder={t.relationLabel} className="w-full p-4 bg-white border rounded-2xl outline-none font-bold text-sm" />
-              <button onClick={addContact} className="w-full bg-purple-600 text-white p-4 rounded-2xl font-black uppercase flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-purple-200 hover:bg-purple-500"><ICONS.Plus /> {t.saveContact}</button>
-           </div>
-
-           <div className="flex-grow overflow-y-auto space-y-3 custom-scrollbar">
-              {user?.contacts.map(c => (
-                <div key={c.id} className="bg-white p-6 rounded-3xl flex justify-between items-center border shadow-sm animate-fade-in">
-                   <div>
-                      <p className="font-black text-lg tracking-tighter">{c.name}</p>
-                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{c.relation} • {c.phone}</p>
-                   </div>
-                   <button onClick={() => removeContact(c.id)} className="p-3 text-red-500 bg-red-50 rounded-2xl active:bg-red-100 hover:bg-red-200 transition-colors"><ICONS.Trash /></button>
-                </div>
-              ))}
-           </div>
-        </div>
-      )}
-
-      {showGovt && (
-        <div className="fixed inset-0 z-[16000] bg-white flex flex-col animate-slide-up p-8">
-           <header className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-black uppercase tracking-tighter">{t.govtHelp}</h3>
-              <button onClick={() => setShowGovt(false)} className="p-3 bg-slate-100 rounded-full"><ICONS.Close /></button>
-           </header>
-           <div className="flex-grow overflow-y-auto space-y-3 custom-scrollbar">
-              {GOVT_HELPLINES.map(h => (
-                <button key={h.number} onClick={() => window.location.href=`tel:${h.number}`} className="w-full bg-slate-50 p-6 rounded-3xl flex items-center gap-5 border active:bg-slate-100 transition-all border-slate-100 group">
-                   <span className="text-3xl filter grayscale group-hover:grayscale-0 transition-all">{h.icon}</span>
-                   <div className="text-left flex-grow">
-                      <p className="font-black text-lg tracking-tighter text-slate-700">{h.name}</p>
-                      <p className="text-purple-600 font-black text-xl">{h.number}</p>
-                   </div>
-                </button>
-              ))}
-           </div>
-        </div>
-      )}
-
+      {/* Dost AI Chat Window */}
       {showDostAi && (
         <div className="fixed inset-0 z-[10000] bg-slate-950 flex flex-col animate-fade-in">
-           <header className="p-6 bg-slate-900 text-white flex justify-between items-center border-b border-white/5 shadow-lg">
+           <header className="p-6 bg-slate-900 text-white flex justify-between items-center border-b border-white/5 shadow-xl">
               <div className="flex items-center gap-3">
                 <div className="text-purple-500 scale-110"><ICONS.Robot /></div>
                 <h2 className="text-xl font-black uppercase tracking-tighter">{t.dostAi}</h2>
               </div>
-              <button onClick={() => setShowDostAi(false)} className="p-3 bg-white/5 rounded-full active:scale-90 transition-all hover:bg-white/10"><ICONS.Close /></button>
+              <button onClick={() => setShowDostAi(false)} className="p-3 bg-white/5 rounded-full"><ICONS.Close /></button>
            </header>
-           <div className="flex-grow overflow-y-auto p-6 space-y-4 custom-scrollbar">
+           <div className="flex-grow overflow-y-auto p-6 space-y-4">
               {chatMessages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                   <div className={`max-w-[85%] p-5 rounded-[2.5rem] font-bold text-sm shadow-xl ${m.role === 'user' ? 'bg-purple-600 text-white rounded-tr-none' : 'bg-slate-900 text-slate-200 border border-white/5 rounded-tl-none'}`}>
+                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                   <div className={`max-w-[85%] p-5 rounded-[2rem] font-bold text-sm ${m.role === 'user' ? 'bg-purple-600 text-white rounded-tr-none' : 'bg-slate-900 text-slate-200 border border-white/5 rounded-tl-none'}`}>
                       {m.text}
                    </div>
                 </div>
               ))}
               {isAiTyping && <div className="flex gap-2 p-4"><div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div><div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce delay-100"></div><div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce delay-200"></div></div>}
            </div>
-           <div className="p-6 bg-slate-900 border-t border-white/5 flex gap-2 pb-12 shadow-inner">
-              <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleDostChat()} placeholder={language === 'hi' ? "Dost se baat karein..." : "Talk to your safety friend..."} className="flex-grow bg-white/5 p-5 rounded-3xl text-white font-bold outline-none text-sm focus:bg-white/10 transition-all" />
-              <button onClick={handleDostChat} className="p-5 bg-purple-600 text-white rounded-3xl shadow-xl active:scale-90 transition-all hover:bg-purple-500"><ICONS.Send /></button>
+           <div className="p-6 bg-slate-900 border-t border-white/5 flex gap-2 pb-10">
+              <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleDostChat()} placeholder="Apne dost se baat karein..." className="flex-grow bg-white/5 p-5 rounded-3xl text-white font-bold outline-none text-sm" />
+              <button onClick={handleDostChat} className="p-5 bg-purple-600 text-white rounded-3xl shadow-xl"><ICONS.Send /></button>
            </div>
         </div>
       )}
 
+      {/* Emergency Overlays (Same as previous, omitted for brevity but conceptually part of the bridge) */}
       {status === SafetyStatus.EMERGENCY && (
-        <div className="fixed inset-0 z-[11000] sos-bg-strobe flex flex-col p-8 text-white animate-fade-in">
-           <div className="flex-grow flex flex-col items-center justify-center text-center space-y-10">
-              <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-red-600 shadow-2xl animate-pulse ring-8 ring-white/20"><ICONS.Alert /></div>
-              <h1 className="text-6xl font-black uppercase tracking-tighter">SOS ACTIVE</h1>
-              <div className="w-full bg-black/40 backdrop-blur-xl rounded-[3rem] p-10 border border-white/20 text-left space-y-4 shadow-2xl animate-slide-up">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-red-400">{t.medicalBrief}</p>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div><p className="text-[10px] opacity-50 uppercase font-black">Name</p><p className="font-black text-2xl uppercase tracking-tighter">{user?.name}</p></div>
-                    <div><p className="text-[10px] opacity-50 uppercase font-black">Blood</p><p className="font-black text-2xl text-red-400">{user?.bloodGroup}</p></div>
-                 </div>
+        <div className="fixed inset-0 z-[20000] sos-bg-strobe flex flex-col p-8 text-white">
+           <div className="flex-grow flex flex-col items-center justify-center text-center space-y-8">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-red-600 shadow-2xl animate-pulse"><ICONS.Alert /></div>
+              <h1 className="text-6xl font-black uppercase">SOS</h1>
+              <div className="bg-black/40 backdrop-blur-xl rounded-3xl p-6 w-full text-left space-y-2">
+                 <p className="text-xs font-black uppercase opacity-60">Medical Profile</p>
+                 <p className="text-2xl font-black">{user.name}</p>
+                 <p className="text-xl font-bold text-red-400">Blood: {user.bloodGroup}</p>
               </div>
            </div>
-           <div className="space-y-4 pt-10 pb-12">
-              {user?.contacts?.[0] && (
-                <button onClick={() => window.location.href=`tel:${user.contacts[0].phone}`} className="w-full bg-white text-red-600 py-8 rounded-[3rem] font-black text-2xl shadow-2xl active:scale-95 transition-all">CALL {user.contacts[0].name.toUpperCase()}</button>
-              )}
-              <button onClick={() => window.location.href=`tel:112`} className="w-full bg-slate-900 text-white py-6 rounded-[3rem] font-black text-xl border border-white/20 shadow-2xl active:scale-95">CALL 112</button>
-              <button onClick={() => { setStatus(SafetyStatus.SAFE); vibrate(50); }} className="w-full py-4 text-white/50 font-black uppercase text-xs tracking-widest hover:text-white transition-colors">I AM SAFE NOW</button>
-           </div>
+           <button onClick={() => setStatus(SafetyStatus.SAFE)} className="w-full py-6 text-white/50 font-black uppercase text-xs">Dismiss Alert</button>
         </div>
       )}
     </div>

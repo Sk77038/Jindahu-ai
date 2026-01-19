@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ZindaHu AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Crucial shim for browser environments like Vercel
+      window.process = window.process || { env: {} };
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
         body {
@@ -22,24 +26,14 @@
             flex-direction: column;
         }
         @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(34, 197, 94, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(147, 51, 234, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(147, 51, 234, 0); }
         }
         @keyframes status-pulse {
             0% { border-color: rgba(220, 38, 38, 0.5); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
             50% { border-color: rgba(220, 38, 38, 1); box-shadow: 0 0 20px 10px rgba(220, 38, 38, 0); }
             100% { border-color: rgba(220, 38, 38, 0.5); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-        }
-        @keyframes attention-pulse {
-            0% { border-color: rgba(245, 158, 11, 0.5); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-            50% { border-color: rgba(245, 158, 11, 1); box-shadow: 0 0 20px 10px rgba(245, 158, 11, 0); }
-            100% { border-color: rgba(245, 158, 11, 0.5); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-        }
-        @keyframes sos-strobe {
-            0% { background-color: #dc2626; }
-            50% { background-color: #991b1b; }
-            100% { background-color: #dc2626; }
         }
         .alive-btn-pulse {
             animation: pulse-ring 2s infinite;
@@ -47,11 +41,13 @@
         .status-alert-pulse {
             animation: status-pulse 1.5s infinite;
         }
-        .status-attention-pulse {
-            animation: attention-pulse 1.8s infinite;
-        }
         .sos-bg-strobe {
             animation: sos-strobe 0.5s infinite;
+        }
+        @keyframes sos-strobe {
+            0% { background-color: #dc2626; }
+            50% { background-color: #7f1d1d; }
+            100% { background-color: #dc2626; }
         }
         .animate-fade-in {
             animation: fadeIn 0.3s ease-out;
@@ -66,13 +62,6 @@
         @keyframes slideUp {
             from { transform: translateY(100%); }
             to { transform: translateY(0); }
-        }
-        .animate-slide-right {
-            animation: slideRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        @keyframes slideRight {
-            from { transform: translateX(-100%); }
-            to { transform: translateX(0); }
         }
         .custom-scrollbar::-webkit-scrollbar {
             width: 4px;
