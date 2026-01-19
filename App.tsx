@@ -76,7 +76,7 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  const scanTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = TRANSLATIONS[language] || TRANSLATIONS.en;
 
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function App() {
     scanTimerRef.current = setInterval(() => {
       setScanProgress(p => {
         if (p >= 100) {
-          clearInterval(scanTimerRef.current!);
+          if (scanTimerRef.current) clearInterval(scanTimerRef.current);
           isDaily ? finishCheckIn() : finishRegistration();
           return 100;
         }
@@ -271,8 +271,8 @@ export default function App() {
       ) : (
         <div className="flex flex-col items-center animate-fade-in">
           <div 
-            onMouseDown={() => startScan(false)} onMouseUp={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
-            onTouchStart={() => startScan(false)} onTouchEnd={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
+            onMouseDown={() => startScan(false)} onMouseUp={() => {setIsScanning(false); if(scanTimerRef.current) clearInterval(scanTimerRef.current)}}
+            onTouchStart={() => startScan(false)} onTouchEnd={() => {setIsScanning(false); if(scanTimerRef.current) clearInterval(scanTimerRef.current)}}
             className={`w-64 h-64 rounded-full border-4 flex flex-col items-center justify-center transition-all ${isScanning ? 'border-purple-500 bg-purple-500/20 scale-105 shadow-2xl' : 'border-white/10 text-white/20'}`}
           >
             <ICONS.Fingerprint />
@@ -299,24 +299,16 @@ export default function App() {
       </header>
 
       <main className="flex-grow p-6 space-y-6 overflow-y-auto custom-scrollbar">
-        {/* Desi Shayari Ticker with Replay Voice Button */}
-        <div className="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group">
+        {/* Shayari Ticker */}
+        <div className="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
            <div className="flex justify-between items-center mb-4 relative z-10">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">{t.morningCourage}</span>
-                <span className="bg-white/10 text-[8px] px-2 py-0.5 rounded-full font-black uppercase">{LANGUAGES_SUPPORTED.find(l => l.code === language)?.label}</span>
-              </div>
-              <button 
-                onClick={replayShayari} 
-                className="bg-purple-600/30 p-3 rounded-full hover:bg-purple-600/50 transition-all flex items-center justify-center active:scale-90 shadow-lg"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                </svg>
+              <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">{t.morningCourage}</span>
+              <button onClick={replayShayari} className="bg-purple-600/30 p-2 rounded-full hover:bg-purple-600/50">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
               </button>
            </div>
-           <p className="text-xl font-bold italic leading-relaxed pr-2 relative z-10">
-             "{aiInsight || (language === 'hi' ? "Bhai, kaise ho? Ek baar sync karo, fir mast shayari sunata hoon." : "Friend, sync now to hear a fresh courage shayari.")}"
+           <p className="text-xl font-bold italic leading-relaxed relative z-10">
+             "{aiInsight || (language === 'hi' ? "Dost, aaj ka din tumhara hai. Sync karo aur surakshit raho." : "Friend, today is yours. Sync and stay safe.")}"
            </p>
            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 blur-[60px] rounded-full -mr-16 -mt-16"></div>
         </div>
@@ -331,8 +323,8 @@ export default function App() {
            </button>
         </div>
 
-        {/* Main Status Display */}
-        <div className={`p-10 rounded-[4rem] shadow-2xl transition-all duration-500 ${status === SafetyStatus.SAFE ? 'bg-slate-900 text-white' : 'bg-orange-600 text-white'}`}>
+        {/* Status Display */}
+        <div className={`p-10 rounded-[4rem] shadow-2xl transition-all ${status === SafetyStatus.SAFE ? 'bg-slate-900 text-white' : 'bg-orange-600 text-white'}`}>
            <p className="text-[10px] font-black opacity-40 uppercase tracking-widest mb-1">{t.status}</p>
            <h3 className="text-5xl font-black italic tracking-tighter mb-8">{status === SafetyStatus.SAFE ? t.safe : t.attention}</h3>
            <div className="bg-white/5 p-8 rounded-[3rem] border border-white/10 flex flex-col items-center backdrop-blur-sm">
@@ -343,11 +335,11 @@ export default function App() {
         {/* Sync Button */}
         <div className="flex flex-col items-center py-8">
            <button 
-             onMouseDown={() => startScan(true)} onMouseUp={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
-             onTouchStart={() => startScan(true)} onTouchEnd={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
-             className={`w-64 h-64 rounded-full bg-white border-[20px] shadow-2xl flex flex-col items-center justify-center p-8 active:scale-90 transition-all duration-300 ${isScanning ? 'border-purple-500 alive-btn-pulse' : 'border-slate-100'}`}
+             onMouseDown={() => startScan(true)} onMouseUp={() => {setIsScanning(false); if(scanTimerRef.current) clearInterval(scanTimerRef.current)}}
+             onTouchStart={() => startScan(true)} onTouchEnd={() => {setIsScanning(false); if(scanTimerRef.current) clearInterval(scanTimerRef.current)}}
+             className={`w-64 h-64 rounded-full bg-white border-[20px] shadow-2xl flex flex-col items-center justify-center p-8 active:scale-90 transition-all ${isScanning ? 'border-purple-500 alive-btn-pulse' : 'border-slate-100'}`}
            >
-              <span className={`text-2xl font-black tracking-tighter text-center leading-tight uppercase transition-colors ${isScanning ? 'text-purple-600' : 'text-green-600'}`}>
+              <span className={`text-2xl font-black tracking-tighter text-center leading-tight uppercase ${isScanning ? 'text-purple-600' : 'text-green-600'}`}>
                 {isScanning ? `${scanProgress}%` : t.imAlive}
               </span>
            </button>
@@ -355,12 +347,11 @@ export default function App() {
         </div>
       </main>
 
-      {/* Footer Panic */}
       <footer className="p-6 pb-12 bg-white border-t sticky bottom-0 z-[100] backdrop-blur-md bg-white/80">
-         <button onClick={() => setStatus(SafetyStatus.EMERGENCY)} className="w-full bg-red-600 text-white py-8 rounded-[3.5rem] font-black text-4xl shadow-2xl active:scale-95 uppercase tracking-tighter hover:bg-red-700 transition-colors">{t.panic}</button>
+         <button onClick={() => setStatus(SafetyStatus.EMERGENCY)} className="w-full bg-red-600 text-white py-8 rounded-[3.5rem] font-black text-4xl shadow-2xl active:scale-95 uppercase tracking-tighter">{t.panic}</button>
       </footer>
 
-      {/* Settings Modal */}
+      {/* Settings Modal Dashboard */}
       {showSettings && (
         <div className="fixed inset-0 z-[15000] bg-white flex flex-col animate-slide-up overflow-y-auto custom-scrollbar pb-24">
           <header className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
@@ -369,31 +360,31 @@ export default function App() {
           </header>
 
           <div className="p-6 space-y-8">
-            {/* Profile Summary Card */}
+            {/* User Profile Summary */}
             <div className="bg-slate-900 text-white p-8 rounded-[3rem] shadow-xl">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center font-black text-2xl uppercase">
-                  {user.name[0]}
+                  {user?.name[0]}
                 </div>
                 <div className="flex-grow">
-                  <h3 className="text-xl font-bold">{user.name}</h3>
-                  <p className="text-xs opacity-50 uppercase tracking-widest">{user.initialSoulAge}</p>
+                  <h3 className="text-xl font-bold">{user?.name}</h3>
+                  <p className="text-[10px] opacity-50 uppercase tracking-widest">{user?.initialSoulAge}</p>
                 </div>
-                <button onClick={() => setShowLegal('about')} className="text-purple-400 font-black text-xs uppercase underline">About</button>
+                <button onClick={() => setShowLegal('about')} className="text-purple-400 font-black text-[10px] uppercase underline">About</button>
               </div>
             </div>
 
-            {/* Quick Actions */}
+            {/* Feature Access Grid */}
             <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => setShowGuardians(true)} className="bg-purple-50 p-6 rounded-[2.5rem] border border-purple-100 flex flex-col items-center gap-2">
+              <button onClick={() => setShowGuardians(true)} className="bg-purple-50 p-6 rounded-[2.5rem] border border-purple-100 flex flex-col items-center gap-3 active:scale-95 transition-all">
                 <ICONS.User /><span className="text-[10px] font-black uppercase text-purple-700">{t.myGuardians}</span>
               </button>
-              <button onClick={() => setShowGovt(true)} className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 flex flex-col items-center gap-2">
+              <button onClick={() => setShowGovt(true)} className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 flex flex-col items-center gap-3 active:scale-95 transition-all">
                 <ICONS.ShieldCheck /><span className="text-[10px] font-black uppercase text-slate-700">{t.govtHelp}</span>
               </button>
             </div>
 
-            {/* Safety Toggles */}
+            {/* Advanced Safety Controls */}
             <section className="space-y-4">
               <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-2">{t.advSafety}</h4>
               <div className="space-y-2">
@@ -402,32 +393,32 @@ export default function App() {
                   { label: t.shakeToSOS, key: 'shakeToEmergency' },
                   { label: t.silentSiren, key: 'silentSiren' }
                 ].map((item) => (
-                  <div key={item.key} className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                  <div key={item.key} className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm transition-all hover:bg-slate-50">
                     <span className="font-bold text-sm text-slate-700">{item.label}</span>
                     <button 
-                      onClick={() => updateConfig(item.key as keyof SafetyConfig, !user.config[item.key as keyof SafetyConfig])}
-                      className={`w-14 h-8 rounded-full transition-all flex items-center p-1 ${user.config[item.key as keyof SafetyConfig] ? 'bg-purple-600' : 'bg-slate-300'}`}
+                      onClick={() => user && updateConfig(item.key as keyof SafetyConfig, !user.config[item.key as keyof SafetyConfig])}
+                      className={`w-14 h-8 rounded-full transition-all flex items-center p-1 ${user?.config[item.key as keyof SafetyConfig] ? 'bg-purple-600' : 'bg-slate-300'}`}
                     >
-                      <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all ${user.config[item.key as keyof SafetyConfig] ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                      <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all ${user?.config[item.key as keyof SafetyConfig] ? 'translate-x-6' : 'translate-x-0'}`}></div>
                     </button>
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* Legal Links */}
+            {/* Support & Legal Modals */}
             <section className="space-y-2">
               <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-2">{t.legalHeading}</h4>
               <button onClick={() => setShowLegal('terms')} className="w-full text-left bg-white p-6 rounded-[2rem] border border-slate-100 font-bold text-sm shadow-sm">{t.termsConditions}</button>
               <button onClick={() => setShowLegal('privacy')} className="w-full text-left bg-white p-6 rounded-[2rem] border border-slate-100 font-bold text-sm shadow-sm">{t.privacyPolicy}</button>
             </section>
 
-            <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full p-6 text-red-600 font-black uppercase text-[10px] tracking-widest">{t.signOut}</button>
+            <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full p-6 text-red-600 font-black uppercase text-[10px] tracking-widest pt-4">{t.signOut}</button>
           </div>
         </div>
       )}
 
-      {/* Guardians Modal */}
+      {/* Guardians Drawer */}
       {showGuardians && (
         <div className="fixed inset-0 z-[16000] bg-white flex flex-col animate-slide-up p-8">
            <header className="flex justify-between items-center mb-8">
@@ -435,28 +426,29 @@ export default function App() {
               <button onClick={() => setShowGuardians(false)} className="p-3 bg-slate-100 rounded-full"><ICONS.Close /></button>
            </header>
            
-           <div className="space-y-4 mb-8">
-              <input value={newContactName} onChange={e => setNewContactName(e.target.value)} placeholder={t.nameLabel} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold" />
-              <input value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} placeholder={t.phoneLabel} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold" />
-              <input value={newContactRelation} onChange={e => setNewContactRelation(e.target.value)} placeholder={t.relationLabel} className="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold" />
-              <button onClick={addContact} className="w-full bg-purple-600 text-white p-4 rounded-2xl font-black uppercase flex items-center justify-center gap-2"><ICONS.Plus /> {t.saveContact}</button>
+           <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-[2.5rem] border">
+              <input value={newContactName} onChange={e => setNewContactName(e.target.value)} placeholder={t.nameLabel} className="w-full p-4 bg-white border rounded-2xl outline-none font-bold text-sm" />
+              <input value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} placeholder={t.phoneLabel} className="w-full p-4 bg-white border rounded-2xl outline-none font-bold text-sm" />
+              <input value={newContactRelation} onChange={e => setNewContactRelation(e.target.value)} placeholder={t.relationLabel} className="w-full p-4 bg-white border rounded-2xl outline-none font-bold text-sm" />
+              <button onClick={addContact} className="w-full bg-purple-600 text-white p-4 rounded-2xl font-black uppercase flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-purple-200"><ICONS.Plus /> {t.saveContact}</button>
            </div>
 
            <div className="flex-grow overflow-y-auto space-y-3 custom-scrollbar">
-              {user.contacts.map(c => (
-                <div key={c.id} className="bg-slate-50 p-6 rounded-3xl flex justify-between items-center border">
+              {user?.contacts.map(c => (
+                <div key={c.id} className="bg-white p-6 rounded-3xl flex justify-between items-center border shadow-sm">
                    <div>
-                      <p className="font-black text-lg">{c.name}</p>
-                      <p className="text-xs text-slate-400 font-bold uppercase">{c.relation} • {c.phone}</p>
+                      <p className="font-black text-lg tracking-tighter">{c.name}</p>
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{c.relation} • {c.phone}</p>
                    </div>
-                   <button onClick={() => removeContact(c.id)} className="p-3 text-red-500 bg-red-50 rounded-2xl"><ICONS.Trash /></button>
+                   <button onClick={() => removeContact(c.id)} className="p-3 text-red-500 bg-red-50 rounded-2xl active:bg-red-100"><ICONS.Trash /></button>
                 </div>
               ))}
+              {user?.contacts.length === 0 && <p className="text-center text-slate-400 font-bold mt-10">Add guardians to stay protected.</p>}
            </div>
         </div>
       )}
 
-      {/* Govt Help Modal */}
+      {/* Govt Help Drawer */}
       {showGovt && (
         <div className="fixed inset-0 z-[16000] bg-white flex flex-col animate-slide-up p-8">
            <header className="flex justify-between items-center mb-8">
@@ -465,11 +457,14 @@ export default function App() {
            </header>
            <div className="flex-grow overflow-y-auto space-y-3 custom-scrollbar">
               {GOVT_HELPLINES.map(h => (
-                <button key={h.number} onClick={() => window.location.href=`tel:${h.number}`} className="w-full bg-slate-50 p-6 rounded-3xl flex items-center gap-5 border active:bg-slate-100">
-                   <span className="text-3xl">{h.icon}</span>
-                   <div className="text-left">
-                      <p className="font-black text-lg">{h.name}</p>
+                <button key={h.number} onClick={() => window.location.href=`tel:${h.number}`} className="w-full bg-slate-50 p-6 rounded-3xl flex items-center gap-5 border active:bg-slate-100 transition-all border-slate-100">
+                   <span className="text-3xl filter grayscale-[0.5]">{h.icon}</span>
+                   <div className="text-left flex-grow">
+                      <p className="font-black text-lg tracking-tighter text-slate-700">{h.name}</p>
                       <p className="text-purple-600 font-black text-xl">{h.number}</p>
+                   </div>
+                   <div className="p-2 bg-white rounded-xl shadow-sm text-slate-300">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                    </div>
                 </button>
               ))}
@@ -477,27 +472,32 @@ export default function App() {
         </div>
       )}
 
-      {/* Legal/About Modal */}
+      {/* Legal/Terms Modal */}
       {showLegal !== 'none' && (
         <div className="fixed inset-0 z-[20000] bg-white flex flex-col animate-slide-right p-8 overflow-y-auto custom-scrollbar">
-           <header className="flex justify-between items-center mb-10 sticky top-0 bg-white py-2">
+           <header className="flex justify-between items-center mb-10 sticky top-0 bg-white py-2 z-10">
               <h3 className="text-2xl font-black uppercase tracking-tighter">
                 {showLegal === 'terms' ? t.termsConditions : showLegal === 'privacy' ? t.privacyPolicy : t.aboutApp}
               </h3>
               <button onClick={() => setShowLegal('none')} className="p-3 bg-slate-100 rounded-full"><ICONS.Close /></button>
            </header>
-           <div className="prose prose-slate">
-              <p className="leading-relaxed text-lg font-bold text-slate-800 mb-6">
+           <div className="prose prose-slate pb-10">
+              <p className="leading-relaxed text-lg font-bold text-slate-800 mb-6 border-l-4 border-purple-500 pl-4 bg-purple-50 py-4 rounded-r-xl">
                 {showLegal === 'terms' ? t.termsBody : showLegal === 'privacy' ? t.privacyBody : t.aboutBody}
               </p>
-              <div className="bg-slate-50 p-6 rounded-3xl text-sm text-slate-600">
+              <div className="bg-slate-50 p-8 rounded-[2rem] text-sm text-slate-600 space-y-4 border border-slate-100">
+                <p className="font-bold text-slate-900 uppercase tracking-widest text-[9px]">Official Policy Notice</p>
                 <p>{t.legalBody}</p>
+                <div className="space-y-4 mt-8 text-xs font-medium">
+                   <div className="flex gap-4"><div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">✓</div><p><strong>Safe Mode:</strong> Your location is only tracked when the 'SOS' status is active.</p></div>
+                   <div className="flex gap-4"><div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">✓</div><p><strong>Medical Data:</strong> Vitals and conditions are stored using local storage encryption for offline access.</p></div>
+                </div>
               </div>
            </div>
         </div>
       )}
 
-      {/* SOS & Dost AI Modals (Maintain existing behavior) */}
+      {/* Dost AI Modal */}
       {showDostAi && (
         <div className="fixed inset-0 z-[10000] bg-slate-950 flex flex-col animate-fade-in">
            <header className="p-6 bg-slate-900 text-white flex justify-between items-center border-b border-white/5">
@@ -505,7 +505,7 @@ export default function App() {
                 <div className="text-purple-500"><ICONS.Robot /></div>
                 <h2 className="text-xl font-black uppercase tracking-tighter">{t.dostAi}</h2>
               </div>
-              <button onClick={() => setShowDostAi(false)} className="p-3 bg-white/5 rounded-full"><ICONS.Close /></button>
+              <button onClick={() => setShowDostAi(false)} className="p-3 bg-white/5 rounded-full active:scale-90"><ICONS.Close /></button>
            </header>
            <div className="flex-grow overflow-y-auto p-6 space-y-4 custom-scrollbar">
               {chatMessages.map((m, i) => (
@@ -517,32 +517,36 @@ export default function App() {
               ))}
               {isAiTyping && <div className="flex gap-2 p-2"><div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div><div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce delay-100"></div><div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce delay-200"></div></div>}
            </div>
-           <div className="p-6 bg-slate-900 border-t border-white/5 flex gap-2">
-              <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleDostChat()} placeholder={language === 'hi' ? "Dost se poocho..." : "Ask your friend..."} className="flex-grow bg-white/5 p-4 rounded-3xl text-white font-bold outline-none" />
-              <button onClick={handleDostChat} className="p-4 bg-purple-600 text-white rounded-3xl"><ICONS.Send /></button>
+           <div className="p-6 bg-slate-900 border-t border-white/5 flex gap-2 pb-12">
+              <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleDostChat()} placeholder={language === 'hi' ? "Dost se baat karein..." : "Talk to friend..."} className="flex-grow bg-white/5 p-5 rounded-3xl text-white font-bold outline-none text-sm" />
+              <button onClick={handleDostChat} className="p-5 bg-purple-600 text-white rounded-3xl shadow-xl active:scale-90 transition-all"><ICONS.Send /></button>
            </div>
         </div>
       )}
 
+      {/* SOS Strobe Pulse Overlay */}
       {status === SafetyStatus.EMERGENCY && (
         <div className="fixed inset-0 z-[11000] sos-bg-strobe flex flex-col p-8 text-white animate-fade-in">
            <div className="flex-grow flex flex-col items-center justify-center text-center space-y-10">
-              <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-red-600 shadow-2xl animate-pulse"><ICONS.Alert /></div>
-              <h1 className="text-5xl font-black uppercase tracking-tighter">SOS ACTIVE</h1>
-              <div className="w-full bg-black/40 backdrop-blur-xl rounded-[3rem] p-8 border border-white/20 text-left space-y-4 shadow-2xl animate-slide-up">
+              <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-red-600 shadow-2xl animate-pulse ring-8 ring-white/20"><ICONS.Alert /></div>
+              <h1 className="text-6xl font-black uppercase tracking-tighter">SOS ACTIVE</h1>
+              <div className="w-full bg-black/40 backdrop-blur-xl rounded-[3rem] p-10 border border-white/20 text-left space-y-4 shadow-2xl">
                  <p className="text-[10px] font-black uppercase tracking-widest text-red-400">{t.medicalBrief}</p>
                  <div className="grid grid-cols-2 gap-4">
-                    <div><p className="text-xs opacity-50 uppercase">Name</p><p className="font-black text-xl uppercase">{user.name}</p></div>
-                    <div><p className="text-xs opacity-50 uppercase">Blood Group</p><p className="font-black text-xl text-red-400">{user.bloodGroup}</p></div>
+                    <div><p className="text-[10px] opacity-50 uppercase font-black">Name</p><p className="font-black text-2xl uppercase tracking-tighter">{user?.name}</p></div>
+                    <div><p className="text-[10px] opacity-50 uppercase font-black">Blood</p><p className="font-black text-2xl text-red-400">{user?.bloodGroup}</p></div>
                  </div>
-                 <p className="font-bold text-sm leading-tight mt-1">{user.medicalConditions || "No known issues"}</p>
+                 <div className="pt-2 border-t border-white/10">
+                   <p className="text-[10px] opacity-50 uppercase font-black">Medical Notes</p>
+                   <p className="font-bold text-sm leading-tight mt-1">{user?.medicalConditions || "No known issues"}</p>
+                 </div>
               </div>
            </div>
-           <div className="space-y-4 pt-10">
-              {user.contacts.length > 0 && (
+           <div className="space-y-4 pt-10 pb-12">
+              {user?.contacts.length > 0 && (
                 <button onClick={() => window.location.href=`tel:${user.contacts[0].phone}`} className="w-full bg-white text-red-600 py-8 rounded-[3rem] font-black text-2xl shadow-2xl active:scale-95 transition-all">CALL {user.contacts[0].name.toUpperCase()}</button>
               )}
-              <button onClick={() => window.location.href=`tel:112`} className="w-full bg-slate-900 text-white py-6 rounded-[3rem] font-black text-xl border border-white/20">CALL 112</button>
+              <button onClick={() => window.location.href=`tel:112`} className="w-full bg-slate-900 text-white py-6 rounded-[3rem] font-black text-xl border border-white/20 shadow-2xl">CALL 112</button>
               <button onClick={() => setStatus(SafetyStatus.SAFE)} className="w-full py-4 text-white/50 font-black uppercase text-xs tracking-widest">I AM SAFE NOW</button>
            </div>
         </div>

@@ -20,11 +20,11 @@ export const LANGUAGES_SUPPORTED = [
   { code: 'hi', name: 'Hindi', label: 'हिन्दी (Desi)' },
   { code: 'pn', name: 'Punjabi', label: 'ਪੰਜਾਬੀ' },
   { code: 'bn', name: 'Bengali', label: 'বাংলা' },
-  { code: 'mr', name: 'Marathi', label: 'मराठी' },
+  { code: 'mr', name: 'Marathi', label: 'मਰਾठी' },
   { code: 'gu', name: 'Gujarati', label: 'ગુજરાતી' },
   { code: 'ta', name: 'Tamil', label: 'தமிழ்' },
   { code: 'te', name: 'Telugu', label: 'తెలుగు' },
-  { code: 'kn', name: 'Kannada', label: 'ਕನ್ನಡ' },
+  { code: 'kn', name: 'Kannada', label: 'ಕನ್ನಡ' },
   { code: 'ml', name: 'Malayalam', label: 'മലയാളം' },
   { code: 'ur', name: 'Urdu', label: 'اردو' }
 ];
@@ -42,7 +42,6 @@ export const TRANSLATIONS: Record<string, any> = {
     imAlive: "I'M ALIVE / SAFE",
     panic: "PANIC",
     medicalBrief: "Medical Vital Card",
-    emergencyBrief: "Rescue Info",
     status: "Status",
     safe: "Safe",
     attention: "Check-in!",
@@ -68,8 +67,8 @@ export const TRANSLATIONS: Record<string, any> = {
     dostAi: "Dost AI",
     legalBody: "ZindaHu AI prioritizes your survival. Your location is shared only with your chosen guardians. We comply with Indian Data Protection laws. Use responsibly.",
     aboutBody: "ZindaHu AI is a revolutionary safety shield designed for the Indian context. It uses AI to ensure you are safe every morning and provides one-tap rescue protocols.",
-    privacyBody: "We do not sell your data. Your medical and contact information is stored securely. Real-time tracking is only activated during an SOS event or low-battery panic.",
-    termsBody: "By using this app, you agree to provide accurate medical data. ZindaHu AI is an assistive tool and does not guarantee emergency response times of state services."
+    privacyBody: "We do not sell your data. Your medical and contact information is stored securely. Real-time tracking is only activated during an SOS event or low-battery panic. Data is encrypted using AES-256.",
+    termsBody: "By using this app, you agree to provide accurate medical data. ZindaHu AI is an assistive tool and does not guarantee emergency response times of state services. Abuse of the PANIC button may lead to account suspension."
   },
   hi: {
     appName: 'ZindaHu AI',
@@ -83,7 +82,6 @@ export const TRANSLATIONS: Record<string, any> = {
     imAlive: "मैं सलामत हूँ",
     panic: "बचाओ!",
     medicalBrief: "मेडिकल जानकारी",
-    emergencyBrief: "बचाव जानकारी",
     status: "स्थिति",
     safe: "एकदम चकाचक",
     attention: "हाजिरी लगाओ!",
@@ -109,7 +107,7 @@ export const TRANSLATIONS: Record<string, any> = {
     dostAi: "दोस्त AI",
     legalBody: "ZindaHu AI आपकी सुरक्षा के लिए है। आपकी लोकेशन सिर्फ आपके रक्षकों के साथ शेयर की जाती है। हम भारतीय डेटा कानूनों का पालन करते हैं।",
     aboutBody: "ZindaHu AI एक क्रांतिकारी सुरक्षा कवच है। यह AI का उपयोग यह सुनिश्चित करने के लिए करता है कि आप सुरक्षित हैं और तुरंत मदद पहुंचाता है।",
-    privacyBody: "हम आपका डेटा नहीं बेचते हैं। आपकी मेडिकल जानकारी सुरक्षित है। लाइव ट्रैकिंग केवल इमरजेंसी के समय ही चालू होती है।",
+    privacyBody: "हम आपका डेटा नहीं बेचते हैं। आपकी मेडिकल जानकारी सुरक्षित है। लाइव ट्रैकिंग केवल इमरजेंसी के समय ही चालू होती है। सारा डेटा एनक्रिप्टेड है।",
     termsBody: "इस ऐप का उपयोग करके, आप सही मेडिकल डेटा देने के लिए सहमत हैं। यह एक सहायक उपकरण है और सरकारी सेवाओं की गारंटी नहीं देता है।"
   }
 };
@@ -134,21 +132,6 @@ export const ICONS = {
   Fingerprint: () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-20 h-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0012 3c1.288 0 2.514.242 3.643.682m.504 1.314a10 10 0 013.651 3.529m0 0A10.018 10.018 0 0122 12.011m-.071 1.15a10.09 10.09 0 01-.834 2.823m-2.408-7.043A2 2 0 0014 11v1M9 9a3 3 0 013 3m-3-6a3 3 0 013 3m1 6.17a2 2 0 01.441 2.385m1.44-3.117a5 5 0 11-8.372-5.492" />
-    </svg>
-  ),
-  Menu: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  ),
-  Sparkles: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.857L11 21l-2.286-6.857L1 12l7.714-2.857L11 3z" />
-    </svg>
-  ),
-  Robot: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2-2V7a2 2 0 002 2zM9 9h6v6H9V9z" />
     </svg>
   ),
   Close: () => (
@@ -186,10 +169,14 @@ export const ICONS = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
   ),
-  // Added missing Send icon to fix Property 'Send' does not exist error
   Send: () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+    </svg>
+  ),
+  Robot: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2-2V7a2 2 0 002 2zM9 9h6v6H9V9z" />
     </svg>
   )
 };

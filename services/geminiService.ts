@@ -1,10 +1,15 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { UserProfile } from '../types';
 import { LANGUAGE_NAME_MAP } from '../constants';
 
+// Strict initialization according to coding guidelines
 const getAIClient = () => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    console.error("Gemini API Key missing in process.env.API_KEY");
+    return null;
+  }
   return new GoogleGenAI({ apiKey });
 };
 
@@ -23,7 +28,7 @@ export async function getSoulAnalysis(name: string, language: string, age: strin
       2. Life Duration (25k-40k days).
       3. Personality reading based on medical resilience.
       Language: ${langName}. If Hindi, use Desi style (informal, brotherly).
-      Return JSON: { "soulAge": string, "predictedDays": number, "reading": string }`,
+      Return JSON ONLY.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -37,13 +42,15 @@ export async function getSoulAnalysis(name: string, language: string, age: strin
         }
       }
     });
+    // Accessing .text as a property, not a method
     return JSON.parse(response.text || "{}");
   } catch (error) {
+    console.error("SoulAnalysis Error:", error);
     return { soulAge: "Eternal", predictedDays: 36500, reading: "You are a cosmic phenomenon." };
   }
 }
 
-/** 2. Morning Desi Insight - Generates the Shayari Text */
+/** 2. Morning Desi Insight */
 export async function getSafetyInsight(user: UserProfile) {
   try {
     const ai = getAIClient();
@@ -54,16 +61,16 @@ export async function getSafetyInsight(user: UserProfile) {
       model: 'gemini-3-flash-preview',
       contents: `Generate a short 2-line safety shayari or motivational quote.
       Context: User ${user.name} just checked in and is safe.
-      Language: ${langName}. 
-      SPECIAL INSTRUCTION for Hindi: Use 'Desi' colloquial language. Speak like a very close friend (informal, sweet, brotherly). 
-      Use words like 'Bhai', 'Ladle', 'Fikar mat kar', 'Tension mat le'.
-      The tone should be very encouraging, warm, and poetic.`,
+      Language: ${langName}. SPECIAL INSTRUCTION for Hindi: Use 'Desi' colloquial language. Speak like a very close friend (informal, sweet, brotherly).`,
     });
     return response.text?.trim() || "Dost, hamesha safe raho.";
-  } catch (error) { return "Stay safe, friend."; }
+  } catch (error) { 
+    console.error("Insight Error:", error);
+    return "Stay safe, friend."; 
+  }
 }
 
-/** 3. Sweet TTS Voice - Speaks the generated Shayari */
+/** 3. Sweet TTS Voice */
 export async function getMotivationalVoice(text: string, language: string) {
   try {
     const ai = getAIClient();
@@ -72,24 +79,24 @@ export async function getMotivationalVoice(text: string, language: string) {
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Speak this in a very sweet, soft, warm, and pleasant voice in ${langName}: ${text}` }] }],
+      contents: [{ parts: [{ text: `Speak this in a very sweet, warm voice in ${langName}: ${text}` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: { 
           voiceConfig: { 
-            prebuiltVoiceConfig: { 
-              // 'Puck' is often soft and pleasant; 'Zephyr' is another alternative for sweetness.
-              voiceName: 'Puck' 
-            } 
+            prebuiltVoiceConfig: { voiceName: 'Puck' } 
           } 
         },
       },
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
-  } catch (error) { return null; }
+  } catch (error) { 
+    console.error("TTS Error:", error);
+    return null; 
+  }
 }
 
-/** 4. Dost AI Vision Responder (With Grounding) */
+/** 4. Dost AI Responder */
 export async function getDostAiResponse(prompt: string, base64Image: string | null, user: UserProfile) {
   try {
     const ai = getAIClient();
@@ -98,8 +105,7 @@ export async function getDostAiResponse(prompt: string, base64Image: string | nu
 
     const parts: any[] = [{ text: `You are 'Dost AI', a safety companion for ${user.name}.
     Medical: ${user.bloodGroup}, ${user.medicalConditions}.
-    If there is danger, give SURVIVAL STEPS.
-    If the user asks about location or safety news, use GOOGLE SEARCH.
+    If danger, give SURVIVAL STEPS. Use GOOGLE SEARCH for real-time safety info.
     Language: ${langName}. If Hindi, use Desi style.
     Prompt: ${prompt}` }];
 
@@ -119,6 +125,7 @@ export async function getDostAiResponse(prompt: string, base64Image: string | nu
     }
     return output;
   } catch (error) {
+    console.error("DostAI Error:", error);
     return "Bhai, himmat rakho. Help is coming.";
   }
 }
@@ -147,6 +154,7 @@ export async function getNearbyHospitals(lat: number, lng: number, language: str
     }
     return output;
   } catch (error) {
+    console.error("Maps Error:", error);
     return "Error fetching hospitals.";
   }
 }
