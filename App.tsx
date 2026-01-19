@@ -18,7 +18,6 @@ const DEFAULT_CONFIG: SafetyConfig = {
   checkInIntervalHours: 24
 };
 
-// Helper: Audio Playback
 async function playVoiceData(base64: string) {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -36,7 +35,7 @@ async function playVoiceData(base64: string) {
     source.connect(audioContext.destination);
     source.start();
   } catch (e) {
-    console.error("Audio Playback Error:", e);
+    console.error("Voice Playback Error", e);
   }
 }
 
@@ -47,7 +46,6 @@ export default function App() {
   const [timeRemaining, setTimeRemaining] = useState<string>('24:00:00');
   const [aiInsight, setAiInsight] = useState<string>('');
   
-  // Registration States
   const [regStep, setRegStep] = useState(1);
   const [regName, setRegName] = useState('');
   const [regAge, setRegAge] = useState('');
@@ -57,7 +55,6 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
 
-  // Modal / Chat States
   const [showSettings, setShowSettings] = useState(false);
   const [showDostAi, setShowDostAi] = useState(false);
   const [chatMessages, setChatMessages] = useState<{role: 'user' | 'ai', text: string}[]>([]);
@@ -93,12 +90,10 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user]);
 
-  const vibrate = (p: number | number[]) => { if ('vibrate' in navigator) navigator.vibrate(p); };
-
   const startScan = (isDaily: boolean) => {
     setIsScanning(true);
     setScanProgress(0);
-    vibrate(50);
+    if ('vibrate' in navigator) navigator.vibrate(50);
     scanTimerRef.current = setInterval(() => {
       setScanProgress(p => {
         if (p >= 100) {
@@ -106,10 +101,10 @@ export default function App() {
           isDaily ? finishCheckIn() : finishRegistration();
           return 100;
         }
-        if (p % 20 === 0) vibrate(10);
-        return p + 4;
+        if (p % 20 === 0 && 'vibrate' in navigator) navigator.vibrate(10);
+        return p + 5;
       });
-    }, 40);
+    }, 30);
   };
 
   const finishRegistration = async () => {
@@ -120,14 +115,13 @@ export default function App() {
       medicalConditions: regMedical, hobbies: [], checkInHour: 9,
       lastCheckIn: Date.now(), contacts: [], language,
       registrationDate: Date.now(), initialSoulAge: analysis.soulAge || "Old Soul",
-      predictedDays: analysis.predictedDays || 35000,
+      predictedDays: analysis.predictedDays || 34000,
       config: DEFAULT_CONFIG
     };
     setUser(newUser);
     firebaseService.saveLocalProfile(newUser);
     setIsScanning(false);
     setIsAiTyping(false);
-    vibrate([100, 50, 100]);
   };
 
   const finishCheckIn = async () => {
@@ -142,7 +136,6 @@ export default function App() {
     const insight = await getSafetyInsight(updated);
     setAiInsight(insight);
     localStorage.setItem('last_insight', insight);
-    
     const voiceData = await getMotivationalVoice(insight, language);
     if (voiceData) playVoiceData(voiceData);
     setIsAiTyping(false);
@@ -154,7 +147,6 @@ export default function App() {
     setChatMessages(p => [...p, { role: 'user', text: msg }]);
     setChatInput('');
     setIsAiTyping(true);
-    vibrate(20);
     const res = await getDostAiResponse(msg, user);
     setChatMessages(p => [...p, { role: 'ai', text: res }]);
     setIsAiTyping(false);
@@ -162,7 +154,7 @@ export default function App() {
 
   if (!user) return (
     <div className="max-w-md mx-auto h-screen bg-slate-950 text-white p-8 flex flex-col justify-center animate-fade-in">
-      <div className="flex items-center gap-3 mb-12"><div className="text-purple-500 scale-125"><ICONS.ShieldCheck /></div><h1 className="text-4xl font-black tracking-tighter">ZindaHu AI</h1></div>
+      <div className="flex items-center gap-3 mb-10"><div className="text-purple-500 scale-125"><ICONS.ShieldCheck /></div><h1 className="text-4xl font-black italic tracking-tighter">ZindaHu AI</h1></div>
       
       {regStep === 1 ? (
         <div className="space-y-4 animate-slide-up">
@@ -178,10 +170,9 @@ export default function App() {
           
           <div className="flex flex-wrap gap-2 pt-2">
              {LANGUAGES_SUPPORTED.map(l => (
-               <button key={l.code} onClick={() => setLanguage(l.code as Language)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all ${language === l.code ? 'bg-purple-600' : 'bg-white/5 opacity-50'}`}>{l.label}</button>
+               <button key={l.code} onClick={() => setLanguage(l.code as Language)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase ${language === l.code ? 'bg-purple-600' : 'bg-white/5 opacity-50'}`}>{l.label}</button>
              ))}
           </div>
-
           <button onClick={() => setRegStep(2)} className="w-full bg-purple-600 py-6 mt-6 rounded-[2rem] font-black text-xl shadow-2xl active:scale-95 transition-all">NEXT</button>
         </div>
       ) : (
@@ -189,12 +180,12 @@ export default function App() {
           <div 
             onMouseDown={() => startScan(false)} onMouseUp={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
             onTouchStart={() => startScan(false)} onTouchEnd={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
-            className={`w-72 h-72 rounded-full border-4 flex flex-col items-center justify-center transition-all duration-300 ${isScanning ? 'border-purple-500 bg-purple-500/10 alive-btn-pulse' : 'border-white/10 text-white/20'}`}
+            className={`w-72 h-72 rounded-full border-4 flex flex-col items-center justify-center transition-all ${isScanning ? 'border-purple-500 bg-purple-500/10 alive-btn-pulse' : 'border-white/10 text-white/20'}`}
           >
             <ICONS.Fingerprint />
             <p className="mt-4 text-[10px] font-black uppercase tracking-widest">{isScanning ? `${scanProgress}%` : t.holdToScan}</p>
           </div>
-          <button onClick={() => setRegStep(1)} className="mt-16 text-slate-500 font-bold uppercase text-xs tracking-widest hover:text-white transition-colors">Back to Profile</button>
+          <button onClick={() => setRegStep(1)} className="mt-16 text-slate-500 font-bold uppercase text-xs tracking-widest">Edit Details</button>
         </div>
       )}
     </div>
@@ -202,57 +193,51 @@ export default function App() {
 
   return (
     <div className={`max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col relative overflow-hidden ${status === SafetyStatus.EMERGENCY ? 'sos-active-bg' : ''}`}>
-      {/* Header */}
       <header className="p-6 bg-white/80 backdrop-blur-md flex justify-between items-center border-b sticky top-0 z-[100]">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-900 text-white rounded-xl shadow-lg shadow-slate-200"><ICONS.Heart /></div>
+          <div className="p-2 bg-slate-900 text-white rounded-xl shadow-lg"><ICONS.Heart /></div>
           <h2 className="text-xl font-black tracking-tighter italic">{t.appName}</h2>
         </div>
         <button onClick={() => setShowSettings(true)} className="p-3 bg-slate-100 rounded-2xl active:scale-90 transition-all"><ICONS.Settings /></button>
       </header>
 
       <main className="flex-grow p-6 space-y-6 overflow-y-auto">
-        {/* Shayari Card */}
         <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
            <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest block mb-2">{t.morningCourage}</span>
-           <p className="text-xl font-bold italic leading-relaxed relative z-10 transition-all group-hover:scale-[1.02]">
+           <p className="text-xl font-bold italic leading-relaxed relative z-10 transition-all">
              "{aiInsight || "Dost, sync karo aur apna din shuru karo."}"
            </p>
            {isAiTyping && <div className="absolute top-4 right-4 animate-pulse w-3 h-3 rounded-full bg-purple-500 shadow-lg shadow-purple-500/50"></div>}
-           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 blur-[40px] -mr-16 -mt-16"></div>
         </div>
 
-        {/* Status Dashboard */}
-        <div className={`p-10 rounded-[3rem] text-white shadow-2xl transition-all duration-500 ${status === SafetyStatus.SAFE ? 'bg-slate-900' : 'bg-red-600 shadow-red-200'}`}>
+        <div className={`p-10 rounded-[3rem] text-white shadow-2xl transition-all duration-500 ${status === SafetyStatus.SAFE ? 'bg-slate-900' : 'bg-red-600'}`}>
            <h3 className="text-5xl font-black italic tracking-tighter mb-8">{status === SafetyStatus.SAFE ? t.safe : t.attention}</h3>
            <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 text-center backdrop-blur-sm">
               <p className="text-6xl font-black tabular-nums tracking-tighter text-purple-400">{timeRemaining}</p>
-              <p className="text-[10px] font-black uppercase opacity-40 mt-2 tracking-widest">{t.status}</p>
+              <p className="text-[10px] font-black uppercase opacity-40 mt-2 tracking-widest">REMAINING</p>
            </div>
         </div>
 
-        {/* Actions */}
         <div className="grid grid-cols-2 gap-4">
            <button onClick={() => { setShowDostAi(true); setChatMessages([]); }} className="bg-purple-600 text-white p-6 rounded-[2.5rem] flex flex-col items-center gap-2 shadow-xl shadow-purple-200 active:scale-95 transition-all">
               <ICONS.Robot /><span className="text-[11px] font-black uppercase">{t.dostAi}</span>
            </button>
            <button onClick={() => { setShowDostAi(true); setChatMessages([{role:'ai', text: t.findingHospitals}]); }} className="bg-white p-6 rounded-[2.5rem] border flex flex-col items-center gap-2 shadow-sm active:scale-95 transition-all">
-              <ICONS.Map /><span className="text-[11px] font-black uppercase text-slate-400">Nearby Help</span>
+              <ICONS.Map /><span className="text-[11px] font-black uppercase text-slate-400">Help Search</span>
            </button>
         </div>
 
-        {/* Sync Mechanism */}
         <div className="flex flex-col items-center py-10">
            <button 
              onMouseDown={() => startScan(true)} onMouseUp={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
              onTouchStart={() => startScan(true)} onTouchEnd={() => {setIsScanning(false); clearInterval(scanTimerRef.current!)}}
              className={`w-64 h-64 rounded-full bg-white border-[18px] shadow-2xl flex items-center justify-center transition-all duration-500 ${isScanning ? 'border-purple-600 alive-btn-pulse scale-110' : 'border-slate-100'}`}
            >
-              <span className={`text-2xl font-black text-center uppercase tracking-tighter leading-none ${isScanning ? 'text-purple-600' : 'text-green-600'}`}>
+              <span className={`text-2xl font-black text-center uppercase tracking-tighter ${isScanning ? 'text-purple-600' : 'text-green-600'}`}>
                 {isScanning ? `${scanProgress}%` : t.imAlive}
               </span>
            </button>
-           <p className="mt-8 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">{t.holdToScan}</p>
+           <p className="mt-8 text-[11px] font-black text-slate-400 uppercase tracking-widest animate-pulse">{t.holdToScan}</p>
         </div>
       </main>
 
@@ -260,39 +245,11 @@ export default function App() {
          <button onClick={() => setStatus(SafetyStatus.EMERGENCY)} className="w-full bg-red-600 text-white py-8 rounded-[3rem] font-black text-4xl shadow-2xl shadow-red-200 active:scale-95 uppercase tracking-tighter">{t.panic}</button>
       </footer>
 
-      {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 z-[15000] bg-white flex flex-col animate-slide-up">
-          <header className="p-6 border-b flex justify-between items-center bg-slate-50">
-            <h2 className="text-2xl font-black tracking-tighter italic uppercase">{t.settings}</h2>
-            <button onClick={() => setShowSettings(false)} className="p-3 bg-white border rounded-full shadow-sm"><ICONS.Close /></button>
-          </header>
-          <div className="p-8 space-y-6">
-             <div className="bg-slate-900 text-white p-8 rounded-[3rem] shadow-xl">
-                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">{user.initialSoulAge}</span>
-                <h3 className="text-3xl font-black tracking-tighter">{user.name}</h3>
-                <div className="mt-6 flex justify-between items-end">
-                   <div>
-                     <p className="text-[10px] opacity-40 uppercase font-black">Predicted Resilience</p>
-                     <p className="text-xl font-bold">~{user.predictedDays} Days</p>
-                   </div>
-                   <div className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black">{user.bloodGroup}</div>
-                </div>
-             </div>
-             <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full p-6 bg-red-50 text-red-600 rounded-[2rem] font-black uppercase text-xs tracking-widest active:bg-red-100 transition-colors">{t.signOut}</button>
-          </div>
-        </div>
-      )}
-
-      {/* Dost AI Chat Interface */}
       {showDostAi && (
         <div className="fixed inset-0 z-[10000] bg-slate-950 flex flex-col animate-fade-in">
-           <header className="p-6 bg-slate-900 text-white flex justify-between items-center border-b border-white/5 shadow-2xl">
-              <div className="flex items-center gap-3">
-                <div className="text-purple-500 scale-110"><ICONS.Robot /></div>
-                <h2 className="text-xl font-black uppercase tracking-tighter">{t.dostAi}</h2>
-              </div>
-              <button onClick={() => setShowDostAi(false)} className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><ICONS.Close /></button>
+           <header className="p-6 bg-slate-900 text-white flex justify-between items-center border-b border-white/5">
+              <div className="flex items-center gap-3"><div className="text-purple-500 scale-110"><ICONS.Robot /></div><h2 className="text-xl font-black uppercase tracking-tighter">{t.dostAi}</h2></div>
+              <button onClick={() => setShowDostAi(false)} className="p-3 bg-white/5 rounded-full"><ICONS.Close /></button>
            </header>
            <div className="flex-grow overflow-y-auto p-6 space-y-4 custom-scrollbar">
               {chatMessages.map((m, i) => (
@@ -305,30 +262,45 @@ export default function App() {
               {isAiTyping && <div className="flex gap-2 p-4 animate-pulse"><div className="w-2 h-2 bg-purple-500 rounded-full"></div><div className="w-2 h-2 bg-purple-500 rounded-full"></div><div className="w-2 h-2 bg-purple-500 rounded-full"></div></div>}
            </div>
            <div className="p-6 bg-slate-900 border-t border-white/5 flex gap-2 pb-12 shadow-2xl">
-              <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleDostChat()} placeholder="Ask me anything..." className="flex-grow bg-white/5 p-5 rounded-3xl text-white font-bold outline-none text-sm focus:bg-white/10 transition-all" />
+              <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleDostChat()} placeholder="Apne dost se baat karein..." className="flex-grow bg-white/5 p-5 rounded-3xl text-white font-bold outline-none text-sm focus:bg-white/10 transition-all" />
               <button onClick={handleDostChat} className="p-5 bg-purple-600 text-white rounded-3xl shadow-xl active:scale-90 transition-all"><ICONS.Send /></button>
            </div>
         </div>
       )}
 
-      {/* Emergency SOS View */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[15000] bg-white flex flex-col animate-slide-up">
+          <header className="p-6 border-b flex justify-between items-center bg-slate-50">
+            <h2 className="text-2xl font-black tracking-tighter italic uppercase">{t.settings}</h2>
+            <button onClick={() => setShowSettings(false)} className="p-3 bg-white border rounded-full shadow-sm"><ICONS.Close /></button>
+          </header>
+          <div className="p-8 space-y-6">
+             <div className="bg-slate-900 text-white p-8 rounded-[3rem] shadow-xl">
+                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">{user.initialSoulAge}</span>
+                <h3 className="text-3xl font-black tracking-tighter">{user.name}</h3>
+                <p className="text-xl font-bold mt-4">~{user.predictedDays} Days Predicted</p>
+             </div>
+             <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-full p-6 bg-red-50 text-red-600 rounded-[2rem] font-black uppercase text-xs tracking-widest">Reset Profile</button>
+          </div>
+        </div>
+      )}
+
       {status === SafetyStatus.EMERGENCY && (
         <div className="fixed inset-0 z-[20000] flex flex-col p-8 text-white animate-fade-in">
            <div className="flex-grow flex flex-col items-center justify-center text-center space-y-10">
-              <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-red-600 shadow-[0_0_100px_rgba(255,255,255,0.4)] animate-pulse"><ICONS.Alert /></div>
+              <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-red-600 shadow-2xl animate-pulse"><ICONS.Alert /></div>
               <h1 className="text-7xl font-black uppercase tracking-tighter">SOS</h1>
-              <div className="bg-black/60 backdrop-blur-2xl rounded-[3rem] p-10 w-full text-left space-y-6 border border-white/20 shadow-2xl">
-                 <p className="text-xs font-black uppercase opacity-60 tracking-widest text-red-400">Emergency Medical Data</p>
+              <div className="bg-black/60 backdrop-blur-2xl rounded-[3rem] p-10 w-full text-left space-y-6 border border-white/20">
+                 <p className="text-xs font-black uppercase opacity-60 tracking-widest text-red-400">Survival Vital Card</p>
                  <p className="text-4xl font-black tracking-tighter">{user.name}</p>
                  <div className="flex justify-between items-center border-t border-white/10 pt-6">
                     <div><p className="text-xs opacity-40 uppercase font-black">Blood Group</p><p className="text-3xl font-black text-red-400">{user.bloodGroup}</p></div>
-                    <div className="text-right"><p className="text-xs opacity-40 uppercase font-black">Health State</p><p className="text-lg font-bold">CRITICAL</p></div>
                  </div>
               </div>
            </div>
            <div className="space-y-4 pt-10 pb-12">
-             <button onClick={() => window.location.href="tel:112"} className="w-full bg-white text-red-600 py-8 rounded-[3rem] font-black text-2xl shadow-2xl">CALL POLICE 112</button>
-             <button onClick={() => setStatus(SafetyStatus.SAFE)} className="w-full py-6 text-white/50 font-black uppercase text-sm tracking-[0.2em] hover:text-white transition-colors">Cancel Emergency</button>
+             <button onClick={() => window.location.href="tel:112"} className="w-full bg-white text-red-600 py-8 rounded-[3rem] font-black text-2xl">CALL POLICE 112</button>
+             <button onClick={() => setStatus(SafetyStatus.SAFE)} className="w-full py-6 text-white/50 font-black uppercase text-xs tracking-widest">Cancel SOS</button>
            </div>
         </div>
       )}

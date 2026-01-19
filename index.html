@@ -7,10 +7,9 @@
     <title>ZindaHu AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Global process shim for browser-based SDK compatibility
-      if (typeof window.process === 'undefined') {
-        window.process = { env: {} };
-      }
+      // Non-destructive global process shim for browser-based SDK compatibility
+      window.process = window.process || {};
+      window.process.env = window.process.env || {};
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
